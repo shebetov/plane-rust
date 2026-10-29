@@ -15,6 +15,13 @@ import { WorkspaceHomeView } from "@/components/home";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 // local components
 import { WorkspaceDashboardHeader } from "./header";
+import { MainMenu } from "@/workbench/pages/main-menu";
+
+// Workbench: Home is the Rust main menu (Plane's dashboard is kept below, unused)
+function WorkbenchHome() {
+  return <MainMenu />;
+}
+export default observer(WorkbenchHome);
 
 function WorkspaceDashboardPage() {
   const { currentWorkspace } = useWorkspace();
@@ -33,4 +40,4 @@ function WorkspaceDashboardPage() {
   );
 }
 
-export default observer(WorkspaceDashboardPage);
+export const PlaneDashboardPage = observer(WorkspaceDashboardPage);

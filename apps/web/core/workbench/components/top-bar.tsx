@@ -104,7 +104,7 @@ export function SoundSwitches() {
       <Tooltip tooltipContent={music ? "Music on" : "Music off"} position="bottom">
         <button
           type="button"
-          className={cn("wb-ibtn", music && "wb-ibtn--on")}
+          className={cn("wb-ibtn wb-ibtn--music", music && "wb-ibtn--on")}
           aria-pressed={music}
           aria-label="Music"
           onClick={() => setMusic(!music)}
@@ -119,10 +119,12 @@ export function SoundSwitches() {
 export function WorkbenchTopBar() {
   return (
     <div className="flex items-center gap-1.5">
-      <WipeCountdown className="hidden md:flex" />
+      <WipeCountdown className="wb-wipe--top" />
       <CupboardChip />
       <ScrapChip />
-      <SoundSwitches />
+      <span className="wb-top-sound">
+        <SoundSwitches />
+      </span>
       <WorkbenchLive />
     </div>
   );

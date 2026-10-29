@@ -44,7 +44,7 @@ export type THomeBlueprint = {
 };
 
 export type THome = {
-  wipe: TWipe;
+  wipe: TWipe & { crafted?: number; scrap?: number };
   blueprints: THomeBlueprint[];
   news: Array<{
     item_id: string;
@@ -170,3 +170,11 @@ export const useWbReport = (index?: number | null) =>
     () => wb.get<TWipeReport>(`wipe-report?index=${index}`),
     opts
   );
+
+/** A sorted copy (the TS target here has no Array#toSorted yet). */
+export function sortedBy<T>(list: readonly T[], key: (v: T) => number): T[] {
+  const copy = list.slice();
+  // oxlint-disable-next-line unicorn/no-array-sort -- sorting a copy
+  copy.sort((a, b) => key(a) - key(b));
+  return copy;
+}

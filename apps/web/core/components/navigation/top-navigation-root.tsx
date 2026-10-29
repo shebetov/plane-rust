@@ -46,7 +46,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
 
   return (
     <div
-      className={cn("z-[27] flex min-h-10 w-full items-center bg-canvas px-3.5 transition-all duration-300", {
+      className={cn("wb-topnav z-[27] flex min-h-10 w-full items-center bg-canvas px-3.5 transition-all duration-300", {
         "px-2": !showLabel,
       })}
     >
@@ -55,7 +55,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
         <WorkspaceMenuRoot variant="top-navigation" />
       </div>
       {/* Power K Search */}
-      <div className="shrink-0">
+      <div className="wb-topsearch shrink-0">
         <TopNavPowerK />
       </div>
       {/* Additional Actions */}
@@ -77,7 +77,9 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
             }}
           />
         </Tooltip>
-        <HelpMenuRoot />
+        <div className="wb-tophelp">
+          <HelpMenuRoot />
+        </div>
         <WorkbenchTopBar />
         <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
           <UserMenuRoot />

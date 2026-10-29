@@ -267,7 +267,7 @@ export const WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS: Record<string, IWorkspac
   projects: {
     key: "projects",
     labelTranslationKey: "projects",
-    href: `/projects/`,
+    href: `/wb/blueprints/`, // Workbench: the server browser
     access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
     highlight: (pathname: string, url: string) => pathname === url,
   },

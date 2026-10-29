@@ -20,11 +20,12 @@ export function CraftQueue() {
   if (!items.length || !workspaceSlug) return null;
   const visible = open ? items : items.slice(0, SHOW);
   return (
-    <div className="wb-queue" aria-label="Craft queue">
-      <div className="wb-queue__hd">
+    <div className={cn("wb-queue", open && "wb-queue--open")} aria-label="Craft queue">
+      {/* on phones the header is a pill that opens the queue */}
+      <button type="button" className="wb-queue__hd" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span>Crafting</span>
         <b>{items.length}</b>
-      </div>
+      </button>
       <div className="wb-queue__slots">
         {visible.map((it) => (
           <Tooltip

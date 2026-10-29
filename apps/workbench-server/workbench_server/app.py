@@ -29,6 +29,7 @@ from .plane import Plane
 
 log = logging.getLogger("workbench")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)  # one line per Plane call is noise
 
 RUST_STATE = {"backlog": "Locked", "unstarted": "To Craft", "started": "Crafting",
               "completed": "Crafted", "cancelled": "Scrapped"}
@@ -250,6 +251,9 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
             p = world.projects.get(r["project"], {})
             r.update(project_name=p.get("name"), identifier=p.get("identifier"), logo=p.get("logo_props"))
         w = wipe_info(db)
+        ws = local_midnight(game.WIPE_EPOCH + timedelta(days=w["index"] * game.WIPE_DAYS))
+        this_wipe = [r for r in ledger if r["grp"] == "completed" and (game.parse_dt(r["at"]) or ws) >= ws]
+        w["crafted"], w["scrap"] = len(this_wipe), sum(r["scrap"] for r in this_wipe)
         seen = db.get("seen_wipes", [])
         report_due = w["index"] - 1 if w["index"] >= 1 and (w["index"] - 1) not in seen else None
         return JSONResponse({"wipe": w, "blueprints": bps, "news": news, "report_due": report_due})
