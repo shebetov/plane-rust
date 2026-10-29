@@ -6,7 +6,7 @@
  * requirements, what it unlocks, and the buttons to start, craft and link Items.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Circle, Hammer, Lock, Minus, Plus, Search, X } from "lucide-react";
+import { Check, Circle, Hammer, Link2, Lock, Minus, Plus, Search, X } from "lucide-react";
 import { Link } from "react-router";
 import { useParams } from "next/navigation";
 import { mutate as mutateGlobal } from "swr";
@@ -82,12 +82,16 @@ function ItemNode({
   sel,
   dim,
   onSelect,
+  onLinkStart,
+  linkTarget,
 }: {
   p: TPlaced;
   tags: Record<string, TTag>;
   sel: boolean;
   dim: boolean;
   onSelect: () => void;
+  onLinkStart: (e: React.PointerEvent) => void;
+  linkTarget: boolean;
 }) {
   const g = GRADE[p.priority] ?? GRADE.none;
   const d = due(p.target, p.group);
@@ -103,8 +107,10 @@ function ItemNode({
         p.ready && "wb-node--ready",
         p.decay > 0 && `wb-node--decay${p.decay}`,
         sel && "wb-node--sel",
-        dim && "wb-node--dim"
+        dim && "wb-node--dim",
+        linkTarget && "wb-node--target"
       )}
+      data-node={p.id}
       style={{ left: p.x, top: p.y, width: NODE_W, height: NODE_H }}
       onClick={(e) => {
         e.stopPropagation();
@@ -112,13 +118,12 @@ function ItemNode({
       }}
       aria-pressed={sel}
     >
-      {p.group === "started" && <span className="wb-brk" aria-hidden />}
       <span className="wb-node__top">
         <StatusIcon group={p.group} />
         <span className="wb-node__key">#{p.seq}</span>
         {blocked && (
           <span className="wb-node__lock" title="Requires other Items first">
-            <Lock className="size-3" /> Needs
+            <Link2 className="size-3" /> Needs
           </span>
         )}
         {p.ready && <span className="wb-node__ready">Ready</span>}
@@ -147,6 +152,14 @@ function ItemNode({
           </span>
         )}
       </span>
+      {/* drag from here onto another Item: "this unlocks that" */}
+      <span
+        className="wb-node__port"
+        role="presentation"
+        title="Drag onto an Item this one unlocks"
+        onPointerDown={onLinkStart}
+        onClick={(e) => e.stopPropagation()}
+      />
     </button>
   );
 }
@@ -505,6 +518,13 @@ function SummaryPanel({
 
 // ---------------------------------------------------------------- page
 
+/** The research block under a screen point (while dragging a link). */
+function nodeAt(cx: number, cy: number): string | null {
+  return (
+    (document.elementFromPoint(cx, cy) as HTMLElement | null)?.closest<HTMLElement>("[data-node]")?.dataset.node ?? null
+  );
+}
+
 function readPref(key: string) {
   try {
     return localStorage.getItem(key);
@@ -575,6 +595,14 @@ export function TechTree() {
   const [showCrafted, setShowCrafted] = useState(false);
   const [zoom, setZoom] = useState(1);
   const scroller = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [link, setLink] = useState<{ from: string; x: number; y: number; over: string | null } | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
+  useEffect(() => {
+    if (!flash) return;
+    const id = setTimeout(() => setFlash(null), 2600);
+    return () => clearTimeout(id);
+  }, [flash]);
   const drag = useRef<{ x: number; y: number; sl: number; st: number; moved: boolean } | null>(null);
 
   useEffect(() => {
@@ -593,7 +621,12 @@ export function TechTree() {
   );
 
   const focusId = hover ?? (sel?.kind === "item" ? sel.id : null);
-  const lit = useMemo(() => (focusId ? pathOf(focusId, all) : null), [focusId, all]);
+  // light up a path only when there is one (an Item with links)
+  const lit = useMemo(() => {
+    if (!focusId) return null;
+    const path = pathOf(focusId, all);
+    return path.size > 1 ? path : null;
+  }, [focusId, all]);
   const colLit = sel?.kind === "col" ? sel.id : null;
 
   if (error) return <WbPage title="Tech tree">{<p className="wb-muted">This Blueprint has no tree.</p>}</WbPage>;
@@ -659,6 +692,48 @@ export function TechTree() {
     } finally {
       void refetch();
     }
+  };
+  // does `a` already require `b`, directly or further up its path?
+  const requires = (a: string, b: string) => {
+    const stack = [a];
+    const seen = new Set<string>();
+    while (stack.length) {
+      const cur = stack.pop()!;
+      if (cur === b) return true;
+      if (seen.has(cur)) continue;
+      seen.add(cur);
+      stack.push(...(all.get(cur)?.blockers ?? []));
+    }
+    return false;
+  };
+  const startLink = (from: string, e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const toMap = (cx: number, cy: number) => {
+      const r = mapRef.current!.getBoundingClientRect();
+      return { x: (cx - r.left) / zoom, y: (cy - r.top) / zoom };
+    };
+    setLink({ from, ...toMap(e.clientX, e.clientY), over: null });
+    const move = (ev: PointerEvent) => {
+      const over = nodeAt(ev.clientX, ev.clientY);
+      setLink({ from, ...toMap(ev.clientX, ev.clientY), over: over === from ? null : over });
+    };
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setLink(null);
+      const to = nodeAt(ev.clientX, ev.clientY);
+      if (!to || to === from || all.get(to)?.blockers.includes(from)) return;
+      if (requires(from, to)) {
+        setFlash("Can't link: that would make a loop");
+        return;
+      }
+      play("move");
+      setFlash(`${all.get(to)?.name ?? "Item"} now requires ${all.get(from)?.name ?? "Item"}`);
+      void onLink(to, from, true);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
   };
   const setZoomClamped = (z: number) => setZoom(Math.min(1.3, Math.max(0.35, Math.round(z * 100) / 100)));
   const fit = () => {
@@ -745,7 +820,11 @@ export function TechTree() {
             onPointerUp={() => setTimeout(() => (drag.current = null), 0)}
           >
             <div className="wb-rt__size" style={{ width: lay.width * zoom + 48, height: lay.height * zoom + 48 }}>
-              <div className="wb-rt__map" style={{ width: lay.width, height: lay.height, transform: `scale(${zoom})` }}>
+              <div
+                ref={mapRef}
+                className="wb-rt__map"
+                style={{ width: lay.width, height: lay.height, transform: `scale(${zoom})` }}
+              >
                 <svg className="wb-rt__edges" width={lay.width} height={lay.height} aria-hidden>
                   <defs>
                     <marker
@@ -761,6 +840,20 @@ export function TechTree() {
                     </marker>
                   </defs>
                   <path d={busD} className="wb-edge wb-edge--bus" />
+                  {link &&
+                    (() => {
+                      const s = lay.nodes.get(link.from);
+                      if (!s) return null;
+                      const sx = s.x + NODE_W / 2;
+                      const sy = s.y + NODE_H;
+                      return (
+                        <path
+                          d={`M${sx} ${sy}C${sx} ${sy + 60},${link.x} ${link.y - 60},${link.x} ${link.y}`}
+                          className="wb-edge wb-edge--drag"
+                          markerEnd="url(#wb-arrow)"
+                        />
+                      );
+                    })()}
                   {lay.edges.map((e) => {
                     const on = lit
                       ? lit.has(e.from) && lit.has(e.to)
@@ -820,13 +913,15 @@ export function TechTree() {
 
                 {placed.map((p) => (
                   // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- hover only lights the path
-                  <div key={p.id} onMouseEnter={() => setHover(p.id)} onMouseLeave={() => setHover(null)}>
+                  <div key={p.id} onMouseEnter={() => !link && setHover(p.id)} onMouseLeave={() => setHover(null)}>
                     <ItemNode
                       p={p}
                       tags={tags}
                       sel={sel?.kind === "item" && sel.id === p.id}
                       dim={(!!lit && !lit.has(p.id)) || (!!colLit && p.col !== colLit)}
                       onSelect={() => setSel({ kind: "item", id: p.id })}
+                      onLinkStart={(e) => startLink(p.id, e)}
+                      linkTarget={link?.over === p.id}
                     />
                   </div>
                 ))}
@@ -842,6 +937,17 @@ export function TechTree() {
             </div>
           </div>
 
+          {flash && (
+            <div className="wb-rt__flash" role="status">
+              {flash}
+            </div>
+          )}
+          {!sel && !flash && (
+            <div className="wb-rt__hint">
+              <Link2 className="size-3.5" />
+              Drag the handle under a block onto an Item it unlocks
+            </div>
+          )}
           {selItem && (
             <ItemPanel
               n={selItem}

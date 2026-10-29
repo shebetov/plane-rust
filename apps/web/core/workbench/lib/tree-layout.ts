@@ -247,7 +247,7 @@ export function layoutTree(
       y: ys.get(n.id) ?? ITEMS_Y,
       treeParent: treeParent.get(n.id) ?? null,
       blocked,
-      ready: !blocked && (n.group === "unstarted" || n.group === "backlog"),
+      ready: !blocked && n.group === "unstarted",
       dependents: dependents.get(n.id) ?? [],
       componentsDone: comps.filter((c) => c.group === "completed").length,
     });
