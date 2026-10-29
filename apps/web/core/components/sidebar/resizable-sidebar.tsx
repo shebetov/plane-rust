@@ -170,7 +170,14 @@ export function ResizableSidebar({
     onWidthChange?.(width);
   }, [width, onWidthChange]);
 
+  // Workbench: report changes only, not the mount value: on mount `isCollapsed` is still the
+  // default false and pushing it re-opened the sidebar that phones had just collapsed
+  const reportedCollapse = useRef(false);
   useEffect(() => {
+    if (!reportedCollapse.current) {
+      reportedCollapse.current = true;
+      return;
+    }
     onCollapsedChange?.(isCollapsed);
   }, [isCollapsed, onCollapsedChange]);
 

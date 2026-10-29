@@ -43,7 +43,8 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
   });
 
   useEffect(() => {
-    if (windowSize[0] < 768 && !sidebarCollapsed) toggleSidebar();
+    // Workbench: collapse explicitly (a plain toggle could flip twice on load and leave it open)
+    if (windowSize[0] < 768 && !sidebarCollapsed) toggleSidebar(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [windowSize]);
 

@@ -298,3 +298,262 @@ button[class*="bg-accent-primary"] {
   transform: scale(1.35);
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
 }
+
+/* ===================== top-bar chips ===================== */
+.wb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 9px 0 6px;
+  background: var(--wb-slot);
+  color: var(--wb-ink);
+  font-family: var(--wb-f-mono);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.wb-chip:hover {
+  background: rgba(170, 160, 143, 0.26);
+}
+.wb-chip--warn {
+  background: rgba(224, 164, 60, 0.18);
+  color: var(--wb-amber);
+}
+.wb-chip--bad {
+  background: rgba(163, 60, 42, 0.35);
+  color: var(--wb-red-ink);
+  animation: wb-pulse 2.4s ease-in-out infinite;
+}
+@keyframes wb-pulse {
+  50% {
+    background: rgba(163, 60, 42, 0.6);
+  }
+}
+
+/* ===================== notices (Rust "item learned") ===================== */
+.wb-notices {
+  position: fixed;
+  right: 16px;
+  bottom: 96px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+.wb-notice {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  min-height: 52px;
+  padding: 6px 12px 6px 8px;
+  background: #171611;
+  background-image: var(--wb-grain);
+  border-left: 4px solid var(--wb-line);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  color: var(--wb-ink);
+  animation:
+    wb-notice-in 0.28s ease-out,
+    wb-notice-out 0.4s ease-in 3.8s forwards;
+}
+.wb-notice--learned {
+  border-left-color: var(--wb-next);
+  background-color: #1d2412;
+}
+.wb-notice--scrapped {
+  border-left-color: var(--wb-red);
+}
+.wb-notice--gold {
+  border-left-color: #d9a83b;
+  box-shadow:
+    0 0 0 1px rgba(217, 168, 59, 0.45),
+    0 6px 18px rgba(0, 0, 0, 0.6);
+}
+.wb-notice--red {
+  border-left-color: #c0392b;
+  box-shadow:
+    0 0 0 1px rgba(192, 57, 43, 0.5),
+    0 6px 18px rgba(0, 0, 0, 0.6);
+}
+.wb-notice__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  background: var(--wb-slot);
+}
+.wb-notice__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.wb-notice__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--wb-next);
+}
+.wb-notice--scrapped .wb-notice__title {
+  color: var(--wb-bad);
+}
+.wb-notice__name {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wb-notice__scrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--wb-f-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wb-amber);
+}
+@keyframes wb-notice-in {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+}
+@keyframes wb-notice-out {
+  to {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+}
+
+/* ===================== craft queue ===================== */
+.wb-queue {
+  position: fixed;
+  right: 16px;
+  bottom: 14px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+.wb-queue__hd {
+  display: flex;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wb-dim);
+  text-shadow: 0 1px 2px #000;
+}
+.wb-queue__hd b {
+  color: var(--wb-amber);
+  font-family: var(--wb-f-mono);
+}
+.wb-queue__slots {
+  display: flex;
+  gap: 3px;
+}
+.wb-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background: rgba(22, 21, 18, 0.88);
+  box-shadow:
+    inset 0 0 0 1px rgba(227, 217, 204, 0.08),
+    0 3px 10px rgba(0, 0, 0, 0.5);
+  color: var(--wb-ink);
+}
+.wb-slot:hover {
+  background: rgba(58, 108, 156, 0.45);
+}
+.wb-slot__key {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-family: var(--wb-f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: #f2ece2;
+  text-shadow: 0 1px 2px #000;
+}
+.wb-slot__hp {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.55);
+}
+.wb-slot__hp i {
+  display: block;
+  height: 100%;
+  background: var(--wb-line);
+}
+.wb-slot--decay1 .wb-slot__hp i,
+.wb-slot--decay2 .wb-slot__hp i {
+  background: var(--wb-amber);
+}
+.wb-slot--decay3 .wb-slot__hp i {
+  background: var(--wb-bad);
+}
+.wb-slot--decay2,
+.wb-slot--decay3 {
+  background-image: var(--wb-rust);
+}
+.wb-slot--more {
+  font-family: var(--wb-f-mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--wb-dim);
+}
+
+/* rust corrosion for decaying things */
+html {
+  --wb-rust: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='r'><feTurbulence type='fractalNoise' baseFrequency='.08' numOctaves='4' seed='7'/><feColorMatrix values='0 0 0 0 .55  0 0 0 0 .26  0 0 0 0 .1  0 0 0 1.4 -.55'/></filter><rect width='100%' height='100%' filter='url(%23r)'/></svg>");
+}
+
+@media (max-width: 767px) {
+  .wb-notices {
+    left: 12px;
+    right: 12px;
+    bottom: auto;
+    top: 52px;
+    align-items: stretch;
+  }
+  .wb-notice {
+    width: auto;
+  }
+  .wb-queue {
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+  .wb-slot {
+    width: 42px;
+    height: 42px;
+  }
+  .wb-queue__hd {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-notice {
+    animation: none;
+  }
+  .wb-chip--bad {
+    animation: none;
+  }
+}
