@@ -1,5 +1,5 @@
 /**
- * The main menu (replaces Plane's Home), after Rust's launcher: a smoky scene, QUICK JOIN
+ * The main menu (replaces Plane's Home), after Rust's launcher: the launcher art, QUICK JOIN
  * with the active Blueprints, a news feed of crafted Items and the wipe headline.
  * After a wipe, the wipe report opens once.
  */
@@ -43,6 +43,11 @@ export function MainMenu() {
   return (
     <WbPage active="home" title="Main menu" bare>
       <div className={cn("wb-menu", `wb-scene--${banner}`)}>
+        {/* Rust launcher art (theme/menu): fades in from black, drifts, and crossfades */}
+        <div className="wb-menu__bg" aria-hidden>
+          <i className="wb-menu__bg1" />
+          <i className="wb-menu__bg2" />
+        </div>
         {error && (
           <div className="wb-menu__err">The Workbench server is offline. Your Items are fine: use the sidebar.</div>
         )}

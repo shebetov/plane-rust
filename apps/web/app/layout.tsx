@@ -7,6 +7,7 @@
 import Script from "next/script";
 
 // styles
+// oxlint-disable-next-line import/no-unassigned-import -- global stylesheet
 import "@/styles/globals.css";
 
 import { SITE_DESCRIPTION, SITE_NAME } from "@plane/constants";
@@ -14,15 +15,11 @@ import { SITE_DESCRIPTION, SITE_NAME } from "@plane/constants";
 // helpers
 import { cn } from "@plane/utils";
 
-// assets
-import favicon16 from "@/app/assets/favicon/favicon-16x16.png?url";
-import favicon32 from "@/app/assets/favicon/favicon-32x32.png?url";
-import faviconIco from "@/app/assets/favicon/favicon.ico?url";
-import icon180 from "@/app/assets/icons/icon-180x180.png?url";
-import icon512 from "@/app/assets/icons/icon-512x512.png?url";
-
 // local
 import { AppProvider } from "./provider";
+
+// Workbench: icons come from the private theme (the in-game Map item, as on the Thesys map)
+const FAV = "/workbench/theme/favicon";
 
 export const meta = () => [
   { title: "Plane | Simple, extensible, open-source project management tool." },
@@ -61,22 +58,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <meta name="theme-color" content="#fff" />
-        <link rel="icon" type="image/png" sizes="32x32" href={favicon32} />
-        <link rel="icon" type="image/png" sizes="16x16" href={favicon16} />
-        <link rel="manifest" href="/site.webmanifest.json" />
-        <link rel="shortcut icon" href={faviconIco} />
+        <meta name="theme-color" content="#161512" />
+        <link rel="icon" type="image/png" sizes="32x32" href={`${FAV}/icon-32.png`} />
+        <link rel="icon" type="image/png" sizes="16x16" href={`${FAV}/icon-16.png`} />
+        <link rel="manifest" href={`${FAV}/site.webmanifest`} />
         {/* Meta info for PWA */}
-        <meta name="application-name" content="Plane" />
+        <meta name="application-name" content="Workbench" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content={SITE_NAME} />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="apple-touch-icon" href={icon512} />
-        <link rel="apple-touch-icon" sizes="180x180" href={icon180} />
-        <link rel="apple-touch-icon" sizes="512x512" href={icon512} />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href={`${FAV}/icon-180.png`} />
+        <link rel="apple-touch-icon" sizes="180x180" href={`${FAV}/icon-180.png`} />
+        <link rel="apple-touch-icon" sizes="512x512" href={`${FAV}/icon-512.png`} />
       </head>
       <body>
         <div id="context-menu-portal" />

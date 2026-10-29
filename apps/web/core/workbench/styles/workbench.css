@@ -767,6 +767,129 @@ html {
   position: relative;
   z-index: 1;
 }
+
+/* launcher art: the scene gradient above stays underneath as the fallback */
+.wb-menu > .wb-menu__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.wb-menu__bg i {
+  position: absolute;
+  inset: -3%;
+  background-size: cover;
+  background-position: 62% 30%;
+  opacity: 0;
+  animation:
+    wb-bg-in 1.8s ease-out 0.1s forwards,
+    wb-bg-drift 46s ease-in-out infinite alternate;
+}
+.wb-menu__bg1 {
+  background-image: url("/workbench/theme/menu/main-1.jpg");
+}
+.wb-menu__bg i.wb-menu__bg2 {
+  background-image: url("/workbench/theme/menu/main-2.jpg");
+  animation:
+    wb-bg-swap 40s ease-in-out 12s infinite,
+    wb-bg-drift 46s ease-in-out infinite alternate-reverse;
+}
+.wb-scene--snow .wb-menu__bg1 {
+  background-image: url("/workbench/theme/menu/snow.jpg");
+}
+.wb-scene--desert .wb-menu__bg1 {
+  background-image: url("/workbench/theme/menu/desert.jpg");
+}
+.wb-scene--night .wb-menu__bg1 {
+  background-image: url("/workbench/theme/menu/night.jpg");
+}
+/* the shop banners are small pictures: soften them; only the default scene crossfades */
+.wb-scene--snow .wb-menu__bg1,
+.wb-scene--desert .wb-menu__bg1,
+.wb-scene--night .wb-menu__bg1 {
+  filter: blur(3px) saturate(1.1);
+}
+.wb-menu:not(.wb-scene--default) .wb-menu__bg2 {
+  display: none;
+}
+/* Rust's menu shade: dark on the left (news), the bottom (hero) and the corners */
+.wb-menu__bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(11, 10, 8, 0.72), rgba(11, 10, 8, 0.1) 42%, rgba(11, 10, 8, 0.25)),
+    linear-gradient(rgba(11, 10, 8, 0.35), transparent 30%, transparent 55%, rgba(11, 10, 8, 0.92)),
+    radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.6));
+}
+@keyframes wb-bg-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes wb-bg-drift {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.08) translate3d(-1.5%, -1%, 0);
+  }
+}
+@keyframes wb-bg-swap {
+  0%,
+  42% {
+    opacity: 0;
+  }
+  50%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* panels come in the way Rust's menu pages do: a short fade with a small slide */
+.wb-menu__join {
+  animation: wb-in-right 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s both;
+}
+.wb-menu__news {
+  animation: wb-in-left 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 0.5s both;
+}
+.wb-hero {
+  animation: wb-in-up 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.2s both;
+}
+@keyframes wb-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+@keyframes wb-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+@keyframes wb-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wb-menu__bg i,
+  .wb-menu__join,
+  .wb-menu__news,
+  .wb-hero {
+    animation: none;
+    opacity: 1;
+  }
+  .wb-menu__bg i.wb-menu__bg2 {
+    display: none;
+  }
+}
 .wb-menu__err {
   grid-column: 1 / -1;
   background: var(--wb-red);
@@ -2091,8 +2214,20 @@ html {
   padding: 4px;
 }
 @media (max-width: 767px) {
+  /* phones: the map runs edge to edge, with no frame or page gutter around it */
+  .wb-page:has(> .wb-rt) {
+    padding: 12px 0 0;
+  }
   .wb-rt {
-    height: calc(100dvh - 130px);
+    height: calc(100dvh - 112px);
+  }
+  .wb-rt__bar {
+    padding: 0 12px 10px;
+  }
+  .wb-rt__wrap,
+  .wb-rt__canvas {
+    border-left: 0;
+    border-right: 0;
   }
   .wb-rt__tools {
     margin-left: 0;
@@ -2258,6 +2393,11 @@ html {
     flex-direction: column;
     gap: 16px;
     padding: 18px 16px 110px;
+  }
+  /* desktop grid alignment would size panels to their text and push them off-screen */
+  .wb-menu > * {
+    align-self: stretch;
+    min-width: 0;
   }
   .wb-hero {
     order: -1;
@@ -2456,5 +2596,16 @@ html {
   }
   .wb-topnav > div:last-child {
     flex: none;
+  }
+}
+
+/* phones: Plane's rounded content frame and its outer gap go, so screens use the full width */
+@media (max-width: 767px) {
+  :has(> .wb-frame) {
+    padding: 0 !important;
+  }
+  .wb-frame {
+    border-width: 1px 0 0 !important;
+    border-radius: 0 !important;
   }
 }
