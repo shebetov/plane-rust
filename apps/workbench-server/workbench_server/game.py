@@ -121,8 +121,15 @@ def tech_tree(kits: list[dict], items: list[dict], groups: dict[str, str], needs
     Items with no Kit are grouped by their first tag (A-Z, untagged last)."""
     by_kit: dict[str, list[dict]] = {}
     loose: list[dict] = []
+    every: list[dict] = []  # the item list under the tree, Scrapped included
+    children: dict[str, int] = {}
+    for it in items:
+        if it.get("parent"):
+            children[it["parent"]] = children.get(it["parent"], 0) + 1
     for it in items:
         node = _item_node(it, groups, now)
+        node["components"] = children.get(it["id"], 0)
+        every.append(node)
         if node["group"] == "cancelled":
             continue
         kit_ids = it.get("module_ids") or []
@@ -159,6 +166,7 @@ def tech_tree(kits: list[dict], items: list[dict], groups: dict[str, str], needs
     total = len(all_items)
     done = sum(1 for i in all_items if i["group"] == "completed")
     return {"kits": kit_nodes, "loose": loose, "loose_groups": _tag_groups(loose, labels or {}),
+            "items": every, "labels": labels or {},
             "next": nxt, "done": done, "total": total,
             "learned": total > 0 and done == total}
 
@@ -183,7 +191,8 @@ def _item_node(it: dict, groups: dict[str, str], now: datetime) -> dict:
     upd = parse_dt(it.get("updated_at"))
     return {"id": it["id"], "name": it["name"], "seq": it.get("sequence_id"), "group": group,
             "priority": it.get("priority"), "decay": decay_stage(group, upd, now),
-            "completed_at": it.get("completed_at")}
+            "completed_at": it.get("completed_at"), "target": it.get("target_date"),
+            "parent": it.get("parent"), "labels": it.get("labels") or [], "kits": it.get("module_ids") or []}
 
 
 # ---------------------------------------------------------------- feeds

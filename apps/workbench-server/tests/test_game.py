@@ -99,3 +99,13 @@ def test_crafted_since_and_wipe_report():
     assert (rep["crafted"], rep["scrapped"], rep["scrap"]) == (1, 1, 25)
     # only Blueprints with open items are listed; p2 crafted nothing -> neglected
     assert [(b["id"], b["neglected"]) for b in rep["blueprints"]] == [("p2", True)]
+
+
+def test_tech_tree_lists_every_item_with_its_attributes():
+    items = [{**item("a", "s-u", ["k1"]), "labels": ["t"], "target_date": "2026-11-20"},
+             {**item("b", "s-x"), "parent": "a"}]
+    t = game.tech_tree([{"id": "k1", "name": "K"}], items, GROUPS, {}, NOW, labels={"t": {"name": "T"}})
+    a, b = t["items"]
+    assert (a["kits"], a["labels"], a["target"], a["components"]) == (["k1"], ["t"], "2026-11-20", 1)
+    assert (b["group"], b["parent"]) == ("cancelled", "a")
+    assert t["labels"] == {"t": {"name": "T"}}

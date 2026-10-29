@@ -80,7 +80,13 @@ export type TTreeItem = {
   priority: string;
   decay: number;
   completed_at: string | null;
+  target?: string | null;
+  parent?: string | null;
+  labels?: string[];
+  kits?: string[];
+  components?: number;
 };
+export type TTag = { name: string; color: string | null };
 export type TTreeKit = {
   id: string;
   name: string;
@@ -113,6 +119,9 @@ export type TTree = {
     done: number;
     total: number;
   }>;
+  /** every Item (Scrapped too), for the list under the tree */
+  items?: TTreeItem[];
+  labels?: Record<string, TTag>;
   next: string | null;
   done: number;
   total: number;
