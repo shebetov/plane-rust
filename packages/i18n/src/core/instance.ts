@@ -10,6 +10,7 @@ import ICU from "i18next-icu";
 import resourcesToBackend from "i18next-resources-to-backend";
 import { SUPPORTED_LANGUAGES, FALLBACK_LANGUAGE, LANGUAGE_STORAGE_KEY } from "../constants/language";
 import { NAMESPACES, DEFAULT_NAMESPACE } from "../constants/namespaces";
+import { applyGlossary } from "./workbench-glossary";
 
 import type { i18n as I18nInstance } from "i18next";
 
@@ -18,10 +19,17 @@ export const i18nInstance: I18nInstance = i18n.createInstance();
 i18nInstance
   .use(ICU)
   .use(initReactI18next)
-  .use(resourcesToBackend((language: string, namespace: string) => import(`../locales/${language}/${namespace}.json`)));
+  .use(
+    resourcesToBackend(async (language: string, namespace: string) => {
+      const mod = (await import(`../locales/${language}/${namespace}.json`)) as { default?: unknown };
+      // Workbench: Rust names over the English strings (other languages are hidden)
+      return applyGlossary(mod.default ?? mod, namespace);
+    })
+  );
 
-const initialLng =
-  typeof window !== "undefined" ? localStorage.getItem(LANGUAGE_STORAGE_KEY) || FALLBACK_LANGUAGE : FALLBACK_LANGUAGE;
+// Workbench is English-only: the glossary renames the English strings
+const initialLng = FALLBACK_LANGUAGE;
+void LANGUAGE_STORAGE_KEY;
 
 export const initPromise = i18nInstance
   .init({

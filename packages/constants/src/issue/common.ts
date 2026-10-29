@@ -70,23 +70,23 @@ export const ISSUE_PRIORITIES: {
 }[] = [
   {
     key: "urgent",
-    title: "Urgent",
+    title: "Armored",
   },
   {
     key: "high",
-    title: "High",
+    title: "Sheet Metal",
   },
   {
     key: "medium",
-    title: "Medium",
+    title: "Stone",
   },
   {
     key: "low",
-    title: "Low",
+    title: "Wood",
   },
   {
     key: "none",
-    title: "None",
+    title: "Twig",
   },
 ];
 

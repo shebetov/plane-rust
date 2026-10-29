@@ -21,33 +21,33 @@ export const STATE_GROUPS: {
 } = {
   backlog: {
     key: "backlog",
-    label: "Backlog",
-    defaultStateName: "Backlog",
-    color: "#d9d9d9",
+    label: "Locked",
+    defaultStateName: "Locked",
+    color: "#7a7365",
   },
   unstarted: {
     key: "unstarted",
-    label: "Unstarted",
-    defaultStateName: "Todo",
-    color: "#3f76ff",
+    label: "To Craft",
+    defaultStateName: "To Craft",
+    color: "#c7beae",
   },
   started: {
     key: "started",
-    label: "Started",
-    defaultStateName: "In Progress",
-    color: "#f59e0b",
+    label: "Crafting",
+    defaultStateName: "Crafting",
+    color: "#e0a43c",
   },
   completed: {
     key: "completed",
-    label: "Completed",
-    defaultStateName: "Done",
-    color: "#16a34a",
+    label: "Crafted",
+    defaultStateName: "Crafted",
+    color: "#9fbb58",
   },
   cancelled: {
     key: "cancelled",
-    label: "Canceled",
-    defaultStateName: "Cancelled",
-    color: "#dc2626",
+    label: "Scrapped",
+    defaultStateName: "Scrapped",
+    color: "#a33c2a",
   },
 };
 

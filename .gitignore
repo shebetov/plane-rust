@@ -117,3 +117,6 @@ packages/i18n/src/types/keys.generated.ts
 
 # Local security notes (not for version control)
 /security/
+
+# Workbench: the private Rust theme is copied in at build time (plane-rust-deploy/theme)
+apps/web/public/workbench/theme

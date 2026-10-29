@@ -3,6 +3,8 @@
 @import "@plane/propel/styles/react-day-picker.css";
 @import "./power-k.css";
 @import "./emoji.css";
+/* Workbench (Rust skin) — last so it wins over Plane tokens */
+@import "../core/workbench/styles/workbench.css";
 @plugin "@tailwindcss/typography";
 
 /* stickies and editor colors */

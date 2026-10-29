@@ -5,10 +5,12 @@
  */
 
 import { initPromise, i18nInstance } from "./instance";
-import { LANGUAGE_STORAGE_KEY } from "../constants/language";
+import { FALLBACK_LANGUAGE, LANGUAGE_STORAGE_KEY } from "../constants/language";
 import type { TLanguage } from "../types";
 
-export async function setLanguage(lng: TLanguage): Promise<void> {
+export async function setLanguage(_requested: TLanguage): Promise<void> {
+  // Workbench is English-only (its Rust glossary renames the English strings)
+  const lng: TLanguage = FALLBACK_LANGUAGE;
   await initPromise;
   await i18nInstance.changeLanguage(lng);
   if (typeof window !== "undefined") {
