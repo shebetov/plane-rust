@@ -16,7 +16,7 @@ import { CustomizeNavigationDialog } from "@/components/navigation/customize-nav
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useSize from "@/hooks/use-window-size";
 // plane web components
-import { WorkspaceEditionBadge } from "@/components/workspace/edition-badge";
+import { WipeCountdown } from "@/workbench/components/top-bar";
 import { AppSidebarToggleButton } from "./sidebar-toggle-button";
 import { IconButton } from "@plane/propel/icon-button";
 
@@ -55,7 +55,10 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
           {/* Workspace switcher and settings */}
 
           <div className="flex items-center justify-between gap-2 px-2">
-            <span className="pt-1 text-16 font-medium text-primary">{title}</span>
+            {/* Workbench: the app name as Rust's stencil title on the main sidebar */}
+            <span className={title === "Projects" ? "wb-brand pt-1" : "pt-1 text-16 font-medium text-primary"}>
+              {title === "Projects" ? "Workbench" : title}
+            </span>
             <div className="flex items-center gap-2">
               {title === "Projects" && (
                 <IconButton
@@ -83,7 +86,7 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
         </ScrollArea>
         {/* Help Section */}
         <div className="flex h-12 items-center justify-between border-t border-subtle bg-surface-1 p-3">
-          <WorkspaceEditionBadge />
+          <WipeCountdown />
           {/* TODO: To be checked if we need this */}
           {/* <div className="flex items-center gap-2">
           {!shouldRenderAppRail && <HelpMenu />}

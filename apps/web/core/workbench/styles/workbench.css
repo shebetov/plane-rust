@@ -194,3 +194,107 @@ body::before {
 * {
   scrollbar-color: #4b473d transparent;
 }
+
+/* ===================== Workbench pieces ===================== */
+
+/* "WORKBENCH" stencil title on the main sidebar */
+.wb-brand {
+  font-family: var(--wb-f-ui);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--wb-ink);
+  text-shadow: 0 1px 2px #000;
+}
+
+/* wipe countdown: a Rust server-browser chip */
+.wb-wipe {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  align-items: center;
+  background: var(--wb-slot);
+  border-left: 2px solid var(--wb-line);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.wb-wipe__k {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--wb-dim);
+}
+.wb-wipe__t {
+  font-family: var(--wb-f-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wb-next);
+}
+.wb-wipe--soon {
+  border-left-color: var(--wb-amber);
+}
+.wb-wipe--soon .wb-wipe__t {
+  color: var(--wb-amber);
+}
+
+.wb-switches {
+  display: flex;
+  gap: 2px;
+}
+.wb-ibtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  color: var(--wb-faint);
+  background: transparent;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.wb-ibtn:hover {
+  background: var(--wb-slot);
+  color: var(--wb-ink);
+}
+.wb-ibtn--on {
+  color: var(--wb-green-ink);
+  background: var(--wb-green);
+}
+.wb-ibtn--on:hover {
+  background: #7c9a40;
+  color: #fff;
+}
+
+/* ===================== Rust pass over Plane's chrome ===================== */
+
+/* section headers in the sidebar ("Game Server", "Blueprints"): small stencil caps */
+[data-wb-root] .text-tertiary.font-semibold,
+.text-13.font-semibold.text-tertiary {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+
+/* primary buttons: Rust's green "CRAFT / BUY" plate */
+button[class*="bg-accent-primary"] {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-wipe,
+  .wb-ibtn {
+    transition: none;
+  }
+}
+
+/* Rust item icons (Blueprint / Kit logos) read bigger than Plane's glyphs */
+.wb-rust-icon {
+  transform: scale(1.35);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+}

@@ -20,6 +20,28 @@ type Props = {
   type?: "lucide" | "material";
 };
 
+/* Workbench: "rust:<item>" icons are Rust item images from the private theme
+   (/workbench/theme/icons/<item>.png); a Blueprint with no logo shows the blueprint item. */
+const RUST_PREFIX = "rust:";
+const RUST_DEFAULT = "blueprintbase";
+
+function RustIcon({ name, size }: { name: string; size: number }) {
+  return (
+    <img
+      src={`/workbench/theme/icons/${name}.png`}
+      alt=""
+      width={size}
+      height={size}
+      draggable={false}
+      className="wb-rust-icon shrink-0 object-contain"
+      style={{ width: size, height: size }}
+      onError={(e) => {
+        e.currentTarget.style.visibility = "hidden";
+      }}
+    />
+  );
+}
+
 export function Logo({ logo, size = 16, type = "material" }: Props) {
   const isMaterialSymbolsFontLoaded = useFontFaceObserver([
     {
@@ -34,12 +56,14 @@ export function Logo({ logo, size = 16, type = "material" }: Props) {
   const loadingSkeleton = <span style={{ height: size, width: size }} className="rounded-sm bg-layer-1" />;
 
   // Early returns for loading/empty states
-  if (!logo || !logo.in_use) return loadingSkeleton;
+  if (!logo || !logo.in_use) return <RustIcon name={RUST_DEFAULT} size={size} />;
 
   const { in_use, emoji, icon } = logo;
   const value = in_use === "emoji" ? emoji?.value : icon?.name;
 
-  if (!value) return loadingSkeleton;
+  if (!value) return <RustIcon name={RUST_DEFAULT} size={size} />;
+  if (in_use === "icon" && value.startsWith(RUST_PREFIX))
+    return <RustIcon name={value.slice(RUST_PREFIX.length)} size={size} />;
 
   // Emoji rendering
   if (in_use === "emoji") {

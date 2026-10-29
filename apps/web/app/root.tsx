@@ -29,6 +29,7 @@ import { isStaleAssetError, recoverFromStaleAsset } from "@/lib/stale-asset-erro
 // local
 import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
+import { WorkbenchProvider } from "@/workbench/provider";
 // fonts
 import "@fontsource-variable/inter";
 import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
@@ -80,7 +81,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <div id="editor-portal" />
         {/* Workbench: one Rust dark theme, no picker */}
         <ThemeProvider themes={["dark"]} defaultTheme="dark" forcedTheme="dark">
-          {children}
+          <WorkbenchProvider>{children}</WorkbenchProvider>
         </ThemeProvider>
         <Scripts />
         {!!isSessionRecorderEnabled && process.env.VITE_SESSION_RECORDER_KEY && (

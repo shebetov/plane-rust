@@ -71,7 +71,7 @@ function keepCase(match: string, word: string): string {
 }
 
 function compile(pairs: Array<[string, string]>): Rule[] {
-  return pairs.map(([from, to]) => [new RegExp(`(?<![\\w{])${from.replace(/[-\s]/g, "[-\\s]")}(?![\\w}])`, "gi"), to]);
+  return pairs.map(([from, to]) => [new RegExp(`(?<!\\w)${from.replace(/[-\s]/g, "[-\\s]")}(?!\\w)`, "gi"), to]);
 }
 
 const RULES = compile(PHRASES);
@@ -82,8 +82,9 @@ const NEW_WORDS =
   "items?|airdrops?|blueprints?|wipes?|kits?|game servers?|stash|storage|teammates?|tags?|components?|scrap costs?|notes?|store|retrieve";
 const ARTICLE = new RegExp(`(?<!\\w)(an?|An?)(\\s+)(${NEW_WORDS})(?!\\w)`, "g");
 
-// {name} or {count, plural, …}: the identifier after "{" is code, not text
-const VARIABLE = /\{\s*[A-Za-z_][\w.]*\s*(?=[,}])/g;
+// {name} or {count, plural, …}: the identifier after "{" is code, not text — but the
+// {Project} after a plural keyword (one/other/=0 …) is text
+const VARIABLE = /(?<!(?:zero|one|two|few|many|other|=\d+)\s*)\{\s*[A-Za-z_][\w.]*\s*(?=[,}])/g;
 // Plane the product, not "plane" the word (and never inside a URL/domain)
 const BRAND: Rule = [/(?<![\w./@-])Plane(?![\w.-]*\.(so|com|io))(?!\w)/g, "Workbench"];
 
