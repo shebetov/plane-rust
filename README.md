@@ -1,3 +1,7 @@
+> **This is Workbench**, a Rust-game-styled fork of Plane (branch `workbench`). It's the same
+> backend, with Rust names, look, sounds and a game loop (wipes, scrap, Tool Cupboard, tech
+> trees). See [`FORK-CHANGELOG.md`](FORK-CHANGELOG.md). Plane's own README follows.
+
 <br /><br />
 
 <p align="center">
