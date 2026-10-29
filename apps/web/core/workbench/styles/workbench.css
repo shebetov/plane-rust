@@ -1576,6 +1576,7 @@ html {
 /* the Items list under the tree */
 .wb-tt__list {
   margin-top: 30px;
+  padding-bottom: 96px; /* room for the craft queue */
   scroll-margin-top: 12px;
 }
 .wb-list {
@@ -1780,9 +1781,10 @@ html {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  width: 104px;
+  width: 124px;
   height: 24px;
   padding: 0 7px 0 3px;
+  white-space: nowrap;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.03em;

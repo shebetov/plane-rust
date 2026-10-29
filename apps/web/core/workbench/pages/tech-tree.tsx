@@ -65,6 +65,7 @@ function ItemRow({
   tags,
   kits,
   showKit,
+  showTags,
 }: {
   it: TTreeItem;
   ident: string;
@@ -72,6 +73,7 @@ function ItemRow({
   tags: Record<string, TTag>;
   kits: Record<string, TTreeKit>;
   showKit: boolean;
+  showTags: boolean;
 }) {
   const g = grade(it);
   const due = CLOSED.has(it.group) ? null : dueText(it.target);
@@ -97,7 +99,7 @@ function ItemRow({
             </span>
           </Tooltip>
         )}
-        {(it.labels ?? [])
+        {(showTags ? (it.labels ?? []) : [])
           .map((id) => tags[id])
           .filter(Boolean)
           .map((t) => (
@@ -281,6 +283,7 @@ function CraftList({
                   tags={tags}
                   kits={kitsById}
                   showKit={by !== "kit" && !kit}
+                  showTags={by !== "tag"}
                 />
               ))}
           </div>
