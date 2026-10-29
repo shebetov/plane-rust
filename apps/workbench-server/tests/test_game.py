@@ -65,6 +65,17 @@ def test_tech_tree_states_locks_and_next_step():
     assert (t["done"], t["total"], t["learned"]) == (2, 5, False)  # cancelled items don't count
 
 
+def test_items_without_a_kit_are_grouped_by_tag():
+    labels = {"t-h": {"name": "Health", "color": "#f00"}, "t-s": {"name": "Self", "color": "#00f"}}
+    items = [{**item("a", "s-c"), "labels": ["t-s"]}, {**item("b", "s-u"), "labels": ["t-h", "t-s"]},
+             {**item("c", "s-u"), "labels": ["gone"]}, item("d", "s-b")]
+    g = game.tech_tree([], items, GROUPS, {}, NOW, labels=labels)["loose_groups"]
+    assert [(x["name"], [i["id"] for i in x["items"]], x["done"]) for x in g] == [
+        ("Health", ["b"], 0), ("Self", ["a"], 1), ("Untagged", ["c", "d"], 0)]
+    untagged_only = game.tech_tree([], [item("d", "s-b")], GROUPS, {}, NOW)["loose_groups"]
+    assert [x["name"] for x in untagged_only] == [None]
+
+
 def test_tech_tree_prefers_the_kit_being_crafted():
     kits = [{"id": "k1", "name": "1"}, {"id": "k2", "name": "2"}]
     t = game.tech_tree(kits, [item("a", "s-u", ["k1"]), item("b", "s-s", ["k2"])], GROUPS, {}, NOW)

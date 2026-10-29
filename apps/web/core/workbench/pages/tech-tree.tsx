@@ -165,14 +165,27 @@ export function TechTree() {
 
         {!!data.loose.length && (
           <div className="wb-tt__loose">
-            <h3>Items without a Kit</h3>
-            <div className="wb-tt-items wb-tt-items--grid">
-              {sortedBy(data.loose, order)
-                .slice(0, 60)
-                .map((it) => (
-                  <ItemSlot key={it.id} it={it} ident={data.blueprint.identifier} slug={slug} />
-                ))}
-            </div>
+            <h3>{kits.length ? "Items without a Kit" : "Items"}</h3>
+            {(data.loose_groups ?? [{ tag: null, name: null, color: null, items: data.loose, done: 0, total: 0 }]).map(
+              (g) => (
+                <section key={g.tag ?? "none"} className="wb-tt-group">
+                  {g.name && (
+                    <h4 className="wb-tt-group__hd">
+                      <i style={{ background: g.color ?? undefined }} />
+                      <span>{g.name}</span>
+                      <b>
+                        {g.done}/{g.total}
+                      </b>
+                    </h4>
+                  )}
+                  <div className="wb-tt-items wb-tt-items--grid">
+                    {sortedBy(g.items, order).map((it) => (
+                      <ItemSlot key={it.id} it={it} ident={data.blueprint.identifier} slug={slug} />
+                    ))}
+                  </div>
+                </section>
+              )
+            )}
           </div>
         )}
         {!kits.length && !data.loose.length && (

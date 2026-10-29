@@ -56,6 +56,9 @@ class Plane:
     async def module_items(self, pid: str, mid: str) -> list[dict]:
         return await self.all(f"/projects/{pid}/modules/{mid}/module-issues/")
 
+    async def labels(self, pid: str) -> list[dict]:
+        return await self.all(f"/projects/{pid}/labels/")
+
     async def cycles(self, pid: str) -> list[dict]:
         return await self.all(f"/projects/{pid}/cycles/")
 

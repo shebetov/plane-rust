@@ -171,7 +171,7 @@ class World:
         return game.tc_status(self.last_craft(pid), top, self.open_count(pid), now())
 
     async def kit_map(self, pid: str) -> dict:
-        """Kits of a Blueprint and which items are in each (cached like the rest)."""
+        """Kits of a Blueprint, which items are in each, and its tags (cached like the rest)."""
         loop = asyncio.get_running_loop()
         hit = self.kit_cache.get(pid)
         if hit and loop.time() - hit[0] < TTL:
@@ -182,7 +182,9 @@ class World:
             for mi in await self.plane.module_items(pid, m["id"]):
                 iid = mi.get("issue") or mi.get("id")
                 members.setdefault(iid, []).append(m["id"])
-        out = {"modules": mods, "members": members}
+        labels = {lb["id"]: {"name": lb["name"], "color": lb.get("color")}
+                  for lb in await self.plane.labels(pid)}
+        out = {"modules": mods, "members": members, "labels": labels}
         self.kit_cache[pid] = (loop.time(), out)
         return out
 
@@ -314,7 +316,8 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
         items = [{**i, "module_ids": km["members"].get(i["id"], [])} for i in world.items.get(pid, [])]
         meta = db.get("meta", {}).get("kits", {})
         needs = {k: v.get("needs", []) for k, v in meta.items()}
-        return game.tech_tree(km["modules"], items, world.groups.get(pid, {}), needs, now())
+        return game.tech_tree(km["modules"], items, world.groups.get(pid, {}), needs, now(),
+                              labels=km.get("labels", {}))
 
     @authed
     async def tree(request: Request):

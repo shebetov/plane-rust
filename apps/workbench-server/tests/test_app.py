@@ -41,6 +41,9 @@ class FakePlane:
     async def module_items(self, pid, mid):
         return [{"id": "i1"}, {"id": "i2"}]
 
+    async def labels(self, pid):
+        return []
+
     async def cycles(self, pid):
         return []
 

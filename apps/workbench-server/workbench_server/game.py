@@ -113,11 +113,12 @@ def decay_stage(group: str, updated_at: datetime | None, now: datetime) -> int:
 # ---------------------------------------------------------------- tech tree
 
 def tech_tree(kits: list[dict], items: list[dict], groups: dict[str, str], needs: dict[str, list[str]],
-              now: datetime) -> dict:
+              now: datetime, labels: dict[str, dict] | None = None) -> dict:
     """A Blueprint's tree: Kits are steps (each with its Items), Items with no Kit hang
     off the root. Kit state: crafted when all its live items are crafted (or the module
     is completed); locked while a needed Kit isn't crafted; else crafting/to-craft.
-    One Kit is the next step: the first unlocked, unfinished Kit in tree order."""
+    One Kit is the next step: the first unlocked, unfinished Kit in tree order.
+    Items with no Kit are grouped by their first tag (A-Z, untagged last)."""
     by_kit: dict[str, list[dict]] = {}
     loose: list[dict] = []
     for it in items:
@@ -129,6 +130,7 @@ def tech_tree(kits: list[dict], items: list[dict], groups: dict[str, str], needs
             for k in kit_ids:
                 by_kit.setdefault(k, []).append(node)
         else:
+            node["tag"] = next((t for t in it.get("labels") or [] if t in (labels or {})), None)
             loose.append(node)
 
     kit_nodes = []
@@ -156,8 +158,24 @@ def tech_tree(kits: list[dict], items: list[dict], groups: dict[str, str], needs
     all_items = [i for kn in kit_nodes for i in kn["items"]] + loose
     total = len(all_items)
     done = sum(1 for i in all_items if i["group"] == "completed")
-    return {"kits": kit_nodes, "loose": loose, "next": nxt, "done": done, "total": total,
+    return {"kits": kit_nodes, "loose": loose, "loose_groups": _tag_groups(loose, labels or {}),
+            "next": nxt, "done": done, "total": total,
             "learned": total > 0 and done == total}
+
+
+def _tag_groups(loose: list[dict], labels: dict[str, dict]) -> list[dict]:
+    by_tag: dict[str | None, list[dict]] = {}
+    for n in loose:
+        by_tag.setdefault(n.get("tag"), []).append(n)
+    out = [{"tag": t, "name": labels[t]["name"], "color": labels[t].get("color"), "items": its}
+           for t, its in by_tag.items() if t]
+    out.sort(key=lambda g: g["name"].lower())
+    if None in by_tag:
+        out.append({"tag": None, "name": "Untagged" if out else None, "color": None, "items": by_tag[None]})
+    for g in out:
+        g["done"] = sum(1 for i in g["items"] if i["group"] == "completed")
+        g["total"] = len(g["items"])
+    return out
 
 
 def _item_node(it: dict, groups: dict[str, str], now: datetime) -> dict:

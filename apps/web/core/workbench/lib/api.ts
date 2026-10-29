@@ -104,6 +104,15 @@ export type TTree = {
   tc: TTc;
   kits: TTreeKit[];
   loose: TTreeItem[];
+  /** Items with no Kit, by tag; one group with name null when nothing is tagged */
+  loose_groups?: Array<{
+    tag: string | null;
+    name: string | null;
+    color: string | null;
+    items: TTreeItem[];
+    done: number;
+    total: number;
+  }>;
   next: string | null;
   done: number;
   total: number;

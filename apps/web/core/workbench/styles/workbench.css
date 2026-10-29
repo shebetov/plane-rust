@@ -1546,6 +1546,35 @@ html {
 .wb-tt__loose {
   margin-top: 32px;
 }
+.wb-tt-group + .wb-tt-group {
+  margin-top: 18px;
+}
+.wb-tt-group__hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(227, 217, 204, 0.08);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--wb-ink);
+}
+.wb-tt-group__hd i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wb-dim);
+}
+.wb-tt-group__hd b {
+  margin-left: auto;
+  font-family: "Roboto Mono", monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--wb-dim);
+}
 .wb-tt__loose h3 {
   font-size: 12px;
   font-weight: 700;
