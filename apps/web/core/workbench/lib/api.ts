@@ -122,6 +122,9 @@ export type TTree = {
   /** every Item (Scrapped too), for the list under the tree */
   items?: TTreeItem[];
   labels?: Record<string, TTag>;
+  /** Plane state id -> group, and the first state id of each group */
+  state_groups?: Record<string, string>;
+  state_ids?: Record<string, string>;
   next: string | null;
   done: number;
   total: number;

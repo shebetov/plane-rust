@@ -316,8 +316,14 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
         items = [{**i, "module_ids": km["members"].get(i["id"], [])} for i in world.items.get(pid, [])]
         meta = db.get("meta", {}).get("kits", {})
         needs = {k: v.get("needs", []) for k, v in meta.items()}
-        return game.tech_tree(km["modules"], items, world.groups.get(pid, {}), needs, now(),
-                              labels=km.get("labels", {}))
+        groups = world.groups.get(pid, {})
+        tree = game.tech_tree(km["modules"], items, groups, needs, now(), labels=km.get("labels", {}))
+        # for the page's own reads and writes through Plane: state id <-> group
+        tree["state_groups"] = groups
+        tree["state_ids"] = {}
+        for sid, g in groups.items():
+            tree["state_ids"].setdefault(g, sid)
+        return tree
 
     @authed
     async def tree(request: Request):

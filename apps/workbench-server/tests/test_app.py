@@ -122,6 +122,7 @@ def test_tree_and_home(env):
     c, _, _ = env
     t = c.get("/wb/api/tree/p1").json()
     assert t["kits"][0]["state"] == "crafting" and t["next"] == "k1" and (t["done"], t["total"]) == (1, 2)
+    assert t["state_ids"]["completed"] == "s-c" and t["state_groups"]["s-c"] == "completed"
     h = c.get("/wb/api/home").json()
     assert h["blueprints"][0]["open"] == 1 and h["news"][0]["name"] == "Quit"
     assert c.get("/wb/api/tree/nope").status_code == 404

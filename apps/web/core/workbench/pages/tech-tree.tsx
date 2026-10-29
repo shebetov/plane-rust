@@ -1,178 +1,511 @@
 /**
- * A Blueprint's tech tree, after Rust's research tree: the Blueprint at the top, its Kits
- * as research steps on olive wires, each with progress and its next Items. Crafted steps
- * are lit, locked ones (waiting on another Kit) carry a padlock, and the next step has the
- * breathing corner bracket. Under the tree, every Item in a crafting list: grouped by
- * status, tag, Kit or grade, with its attributes. Clicking a Kit filters the list.
+ * A Blueprint's research tree, after Rust's tech tree: the Blueprint at the top, a column
+ * per Kit on olive wires, and every Item as its own block, hanging under what it requires
+ * (or the Item it is a Component of). Lines show the way to each Kit and to the Blueprint.
+ * Selecting a block lights up its whole path and opens the research panel: details,
+ * requirements, what it unlocks, and the buttons to start, craft and link Items.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronRight, Circle, Hammer, Lock, X } from "lucide-react";
+import { Check, Circle, Hammer, Lock, Minus, Plus, Search, X } from "lucide-react";
 import { Link } from "react-router";
 import { useParams } from "next/navigation";
-import { Tooltip } from "@plane/propel/tooltip";
+import { mutate as mutateGlobal } from "swr";
 import { cn } from "@plane/utils";
-import type { TTag, TTree, TTreeItem, TTreeKit } from "../lib/api";
+import type { TLogo, TTag, TTree } from "../lib/api";
 import { sortedBy, useWbHome, useWbTree } from "../lib/api";
+import type { TPlaneItem } from "../lib/plane";
+import {
+  addRequirement,
+  plainText,
+  removeRequirement,
+  setItemState,
+  useDescription,
+  usePlaneItems,
+} from "../lib/plane";
+import type { TCol, TColIn, TLayout, TNodeIn, TPlaced } from "../lib/tree-layout";
+import { BUS_TOP, HEADER_H, HEADER_W, NODE_H, NODE_W, layoutTree, pathOf } from "../lib/tree-layout";
+import { play } from "../sound/engine";
 import { RustItem, RustLogo } from "../components/rust-icon";
 import { ToolCupboard } from "./server-browser";
 import { WbPage } from "./shell";
 
-const STATUS: Record<string, { label: string; rank: number }> = {
-  started: { label: "Crafting", rank: 0 },
-  unstarted: { label: "To craft", rank: 1 },
-  backlog: { label: "Locked", rank: 2 },
-  completed: { label: "Crafted", rank: 3 },
-  cancelled: { label: "Scrapped", rank: 4 },
+const STATUS: Record<string, string> = {
+  started: "Crafting",
+  unstarted: "To craft",
+  backlog: "Locked",
+  completed: "Crafted",
+  cancelled: "Scrapped",
 };
-// building grades, with the resource Rust asks for to build at that grade
-const GRADE: Record<string, { label: string; icon: string; rank: number }> = {
-  urgent: { label: "Armored", icon: "metal.refined", rank: 0 },
-  high: { label: "Sheet Metal", icon: "metal.fragments", rank: 1 },
-  medium: { label: "Stone", icon: "stones", rank: 2 },
-  low: { label: "Wood", icon: "wood", rank: 3 },
-  none: { label: "Twig", icon: "building.planner", rank: 4 },
+const GRADE: Record<string, { label: string; icon: string }> = {
+  urgent: { label: "Armored", icon: "metal.refined" },
+  high: { label: "Sheet Metal", icon: "metal.fragments" },
+  medium: { label: "Stone", icon: "stones" },
+  low: { label: "Wood", icon: "wood" },
+  none: { label: "Twig", icon: "building.planner" },
 };
 const HP = [100, 65, 35, 12];
-const CLOSED = new Set(["completed", "cancelled"]);
+const NO_COL = "~";
 
-type TGroupBy = "status" | "tag" | "kit" | "grade";
-type TGroup = { key: string; label: string; icon?: React.ReactNode; color?: string | null; items: TTreeItem[] };
+type TSel = { kind: "item" | "col" | "root"; id: string } | null;
 
-const rank = (it: TTreeItem) => STATUS[it.group]?.rank ?? 5;
-const grade = (it: TTreeItem) => GRADE[it.priority ?? "none"] ?? GRADE.none;
-
-function StatusIcon({ group }: { group: string }) {
+function StatusIcon({ group, big }: { group: string; big?: boolean }) {
   const Icon = { started: Hammer, unstarted: Circle, backlog: Lock, completed: Check, cancelled: X }[group] ?? Circle;
   return (
-    <span className={cn("wb-st", `wb-st--${group}`)} aria-label={STATUS[group]?.label}>
-      <Icon className="size-3" strokeWidth={2.5} />
+    <span className={cn("wb-st", `wb-st--${group}`, big && "wb-st--big")} title={STATUS[group]}>
+      <Icon className={big ? "size-4" : "size-3"} strokeWidth={2.5} />
     </span>
   );
 }
 
-function dueText(target?: string | null) {
-  if (!target) return null;
+function due(target: string | null, group: string) {
+  if (!target || group === "completed" || group === "cancelled") return null;
   const d = new Date(`${target}T00:00:00`);
   const days = Math.round((d.getTime() - new Date().setHours(0, 0, 0, 0)) / 86_400_000);
-  const label = d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
-  return { label, late: days < 0, soon: days >= 0 && days <= 3 };
+  return {
+    label: d.toLocaleDateString(undefined, { day: "numeric", month: "short" }),
+    late: days < 0,
+    soon: days >= 0 && days <= 3,
+  };
 }
 
-function ItemRow({
-  it,
-  ident,
-  slug,
+function decayOf(group: string, updated: string): number {
+  if (group !== "started") return 0;
+  const idle = (Date.now() - new Date(updated).getTime()) / 86_400_000;
+  return idle >= 60 ? 3 : idle >= 30 ? 2 : idle >= 14 ? 1 : 0;
+}
+
+// ---------------------------------------------------------------- nodes
+
+function ItemNode({
+  p,
   tags,
-  kits,
-  showKit,
-  showTags,
+  sel,
+  dim,
+  onSelect,
 }: {
-  it: TTreeItem;
-  ident: string;
-  slug: string;
+  p: TPlaced;
   tags: Record<string, TTag>;
-  kits: Record<string, TTreeKit>;
-  showKit: boolean;
-  showTags: boolean;
+  sel: boolean;
+  dim: boolean;
+  onSelect: () => void;
 }) {
-  const g = grade(it);
-  const due = CLOSED.has(it.group) ? null : dueText(it.target);
-  const kit = showKit ? (it.kits ?? []).map((k) => kits[k]).find(Boolean) : undefined;
+  const g = GRADE[p.priority] ?? GRADE.none;
+  const d = due(p.target, p.group);
+  const tagList = p.labels.map((l) => tags[l]).filter(Boolean);
+  const blocked = p.blocked && p.group !== "completed";
   return (
-    <Link
-      to={`/${slug}/browse/${ident}-${it.seq}/`}
-      className={cn("wb-row", `wb-row--${it.group}`, it.decay > 0 && `wb-row--decay${it.decay}`)}
+    <button
+      type="button"
+      className={cn(
+        "wb-node",
+        `wb-node--${p.group}`,
+        blocked && "wb-node--blocked",
+        p.ready && "wb-node--ready",
+        p.decay > 0 && `wb-node--decay${p.decay}`,
+        sel && "wb-node--sel",
+        dim && "wb-node--dim"
+      )}
+      style={{ left: p.x, top: p.y, width: NODE_W, height: NODE_H }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
+      aria-pressed={sel}
     >
-      <StatusIcon group={it.group} />
-      <span className="wb-row__key">
-        {ident}-{it.seq}
-      </span>
-      <span className="wb-row__name">
-        {it.name}
-        {!!it.components && <small className="wb-row__comp">{it.components} components</small>}
-      </span>
-      <span className="wb-row__meta">
-        {it.group === "started" && it.decay > 0 && (
-          <Tooltip tooltipContent="Decaying: no activity for a while">
-            <span className="wb-row__hp">
-              <i style={{ width: `${HP[it.decay]}%` }} />
-            </span>
-          </Tooltip>
-        )}
-        {(showTags ? (it.labels ?? []) : [])
-          .map((id) => tags[id])
-          .filter(Boolean)
-          .map((t) => (
-            <span key={t.name} className="wb-pill">
-              <i style={{ background: t.color ?? undefined }} />
-              {t.name}
-            </span>
-          ))}
-        {kit && (
-          <span className="wb-pill wb-pill--kit">
-            <RustLogo logo={kit.logo} size={14} />
-            {kit.name}
+      {p.group === "started" && <span className="wb-brk" aria-hidden />}
+      <span className="wb-node__top">
+        <StatusIcon group={p.group} />
+        <span className="wb-node__key">#{p.seq}</span>
+        {blocked && (
+          <span className="wb-node__lock" title="Requires other Items first">
+            <Lock className="size-3" /> Needs
           </span>
         )}
-        {due && (
-          <span className={cn("wb-pill", due.late && "wb-pill--late", due.soon && "wb-pill--soon")}>{due.label}</span>
-        )}
-        <Tooltip tooltipContent={`Grade: ${g.label}`}>
-          <span className={cn("wb-grade", `wb-grade--${it.priority ?? "none"}`)}>
-            <RustItem item={g.icon} size={18} />
-            <span>{g.label}</span>
-          </span>
-        </Tooltip>
+        {p.ready && <span className="wb-node__ready">Ready</span>}
+        <span className="wb-node__grade" title={`Grade: ${g.label}`}>
+          <RustItem item={g.icon} size={20} />
+        </span>
       </span>
-    </Link>
+      <span className="wb-node__name">{p.name}</span>
+      <span className="wb-node__meta">
+        {tagList.slice(0, 3).map((tg) => (
+          <i key={tg.name} className="wb-node__tag" style={{ background: tg.color ?? undefined }} title={tg.name} />
+        ))}
+        {!!p.components && (
+          <span className="wb-node__comp" title="Components crafted">
+            ⚙ {p.componentsDone}/{p.components}
+          </span>
+        )}
+        {d && (
+          <span className={cn("wb-node__due", d.late && "wb-node__due--late", d.soon && "wb-node__due--soon")}>
+            {d.label}
+          </span>
+        )}
+        {p.group === "started" && (
+          <span className="wb-node__hp" title={p.decay ? "Decaying: no activity for a while" : "Crafting"}>
+            <i style={{ width: `${HP[p.decay]}%` }} />
+          </span>
+        )}
+      </span>
+    </button>
   );
 }
 
-function groupItems(items: TTreeItem[], by: TGroupBy, tags: Record<string, TTag>, kits: TTreeKit[]): TGroup[] {
-  const groups = new Map<string, TGroup>();
-  const add = (key: string, make: () => Omit<TGroup, "items" | "key">, it: TTreeItem) => {
-    if (!groups.has(key)) groups.set(key, { key, items: [], ...make() });
-    groups.get(key)!.items.push(it);
-  };
-  for (const it of items) {
-    if (by === "status") {
-      add(it.group, () => ({ label: STATUS[it.group]?.label ?? it.group, icon: <StatusIcon group={it.group} /> }), it);
-      continue;
-    }
-    if (it.group === "cancelled") continue; // Scrapped only shows when grouped by status
-    if (by === "grade") {
-      const g = grade(it);
-      add(g.label, () => ({ label: g.label, icon: <RustItem item={g.icon} size={18} /> }), it);
-    } else if (by === "tag") {
-      const id = (it.labels ?? []).find((l) => tags[l]);
-      add(id ?? "~", () => (id ? { label: tags[id].name, color: tags[id].color } : { label: "Untagged" }), it);
-    } else {
-      const k = kits.find((kk) => (it.kits ?? []).includes(kk.id));
-      add(
-        k?.id ?? "~",
-        () => (k ? { label: k.name, icon: <RustLogo logo={k.logo} size={18} /> } : { label: "No Kit" }),
-        it
-      );
-    }
-  }
-  const list = [...groups.values()];
-  for (const g of list) g.items = sortedBy(g.items, (it) => rank(it) * 10 + grade(it).rank);
-  const order = (g: TGroup) => {
-    if (g.key === "~") return 1e6;
-    if (by === "status") return STATUS[g.key]?.rank ?? 9;
-    if (by === "grade") return Object.values(GRADE).find((x) => x.label === g.key)?.rank ?? 9;
-    if (by === "kit") return kits.findIndex((k) => k.id === g.key);
-    return 0;
-  };
-  const sorted = sortedBy(list, order);
-  if (by !== "tag") return sorted;
-  const tagged = sorted.filter((g) => g.key !== "~");
-  // oxlint-disable-next-line unicorn/no-array-sort -- sorting a fresh copy
-  tagged.sort((a, b) => a.label.localeCompare(b.label));
-  return [...tagged, ...sorted.filter((g) => g.key === "~")];
+function ColIcon({ c, size }: { c: { color?: string | null; logo?: unknown }; size: number }) {
+  return c.color !== undefined ? (
+    <i className="wb-colhd__dot" style={{ background: c.color ?? undefined }} />
+  ) : (
+    <RustLogo logo={c.logo as TLogo} size={size} />
+  );
 }
 
-function readPref(key: string): string | null {
+function ColHeader({ c, sel, dim, onSelect }: { c: TCol; sel: boolean; dim: boolean; onSelect: () => void }) {
+  const pct = c.total ? (c.done / c.total) * 100 : 0;
+  return (
+    <button
+      type="button"
+      className={cn("wb-colhd", `wb-colhd--${c.state}`, sel && "wb-colhd--sel", dim && "wb-node--dim")}
+      style={{ left: c.x, width: HEADER_W, height: HEADER_H }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
+      aria-pressed={sel}
+    >
+      <span className="wb-colhd__icon">
+        <ColIcon c={c} size={44} />
+        {c.state === "locked" && (
+          <span className="wb-colhd__lock">
+            <Lock className="size-4" />
+          </span>
+        )}
+      </span>
+      <span className="wb-colhd__body">
+        <span className="wb-colhd__name">{c.label}</span>
+        <span className="wb-colhd__bar">
+          <i style={{ width: `${pct}%` }} />
+        </span>
+        <span className="wb-colhd__counts">
+          <span>
+            {c.done}/{c.total}
+          </span>
+          {!!c.crafting && <span className="wb-colhd__crafting">{c.crafting} crafting</span>}
+          {c.state === "crafted" && <span className="wb-colhd__learned">Learned</span>}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------- research panel
+
+function ItemLine({ it, onPick, onRemove }: { it: TNodeIn; onPick: () => void; onRemove?: () => void }) {
+  return (
+    <li className="wb-rp__line">
+      <button type="button" onClick={onPick}>
+        <StatusIcon group={it.group} />
+        <span>{it.name}</span>
+      </button>
+      {onRemove && (
+        <button type="button" className="wb-rp__x" onClick={onRemove} aria-label={`Remove requirement ${it.name}`}>
+          <X className="size-3.5" />
+        </button>
+      )}
+    </li>
+  );
+}
+
+function RequirementPicker({
+  item,
+  all,
+  onAdd,
+  onClose,
+}: {
+  item: TNodeIn;
+  all: Map<string, TNodeIn>;
+  onAdd: (id: string) => void;
+  onClose: () => void;
+}) {
+  const [q, setQ] = useState("");
+  const ahead = useMemo(() => {
+    // can't require something that already requires this Item (no loops)
+    const out = new Set<string>([item.id]);
+    const stack = [item.id];
+    while (stack.length) {
+      const cur = stack.pop()!;
+      for (const n of all.values())
+        if (n.blockers.includes(cur) && !out.has(n.id)) {
+          out.add(n.id);
+          stack.push(n.id);
+        }
+    }
+    return out;
+  }, [item.id, all]);
+  const query = q.trim().toLowerCase();
+  const list = sortedBy(
+    [...all.values()].filter(
+      (n) =>
+        !ahead.has(n.id) &&
+        !item.blockers.includes(n.id) &&
+        n.group !== "cancelled" &&
+        (!query || n.name.toLowerCase().includes(query) || String(n.seq) === query.replace("#", ""))
+    ),
+    (n) => (n.group === "completed" ? 1 : 0)
+  ).slice(0, 8);
+  return (
+    <div className="wb-rp__pick">
+      <label className="wb-rp__search">
+        <Search className="size-3.5" />
+        <input
+          // oxlint-disable-next-line jsx-a11y/no-autofocus -- the picker opens on demand
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Find the Item it requires"
+        />
+        <button type="button" onClick={onClose} aria-label="Cancel">
+          <X className="size-3.5" />
+        </button>
+      </label>
+      <ul>
+        {list.map((n) => (
+          <li key={n.id}>
+            <button type="button" onClick={() => onAdd(n.id)}>
+              <StatusIcon group={n.group} />
+              <span>{n.name}</span>
+              <small>#{n.seq}</small>
+            </button>
+          </li>
+        ))}
+        {!list.length && <li className="wb-muted">Nothing matches.</li>}
+      </ul>
+    </div>
+  );
+}
+
+function ItemPanel({
+  n,
+  all,
+  tags,
+  colLabel,
+  slug,
+  pid,
+  ident,
+  stateIds,
+  onPick,
+  onClose,
+  onState,
+  onLink,
+}: {
+  n: TNodeIn;
+  all: Map<string, TNodeIn>;
+  tags: Record<string, TTag>;
+  colLabel?: string;
+  slug: string;
+  pid: string;
+  ident: string;
+  stateIds: Record<string, string>;
+  onPick: (id: string) => void;
+  onClose: () => void;
+  onState: (id: string, group: string) => void;
+  onLink: (item: string, blocker: string, add: boolean) => void;
+}) {
+  const { data: html } = useDescription(slug, pid, n.id);
+  const [picking, setPicking] = useState(false);
+  useEffect(() => setPicking(false), [n.id]);
+  const text = html ? plainText(html) : "";
+  const g = GRADE[n.priority] ?? GRADE.none;
+  const d = due(n.target, n.group);
+  const reqs = n.blockers.map((b) => all.get(b)).filter((x): x is TNodeIn => !!x);
+  const unlocks = [...all.values()].filter((x) => x.blockers.includes(n.id));
+  const comps = [...all.values()].filter((x) => x.parent === n.id && x.group !== "cancelled");
+  const parent = n.parent ? all.get(n.parent) : undefined;
+  const open = reqs.filter((r) => r.group !== "completed" && r.group !== "cancelled").length;
+  const next =
+    n.group === "started"
+      ? { label: "Craft", group: "completed", cls: "wb-btn--green" }
+      : n.group === "completed" || n.group === "cancelled"
+        ? { label: "Reopen", group: "unstarted", cls: "wb-btn--ghost" }
+        : { label: "Start crafting", group: "started", cls: "wb-btn--amber" };
+  return (
+    <aside className="wb-rp" aria-label="Research panel" data-wb-panel>
+      <header className="wb-rp__hd">
+        <StatusIcon group={n.group} big />
+        <span className="wb-rp__kick">
+          {ident}-{n.seq} · {STATUS[n.group]}
+        </span>
+        <button type="button" className="wb-rp__close" onClick={onClose} aria-label="Close">
+          <X className="size-4" />
+        </button>
+      </header>
+      <h2 className="wb-rp__title">{n.name}</h2>
+      <div className="wb-rp__chips">
+        <span className="wb-grade-chip">
+          <RustItem item={g.icon} size={18} />
+          {g.label}
+        </span>
+        {colLabel && <span className="wb-pill">{colLabel}</span>}
+        {n.labels
+          .map((l) => tags[l])
+          .filter(Boolean)
+          .map((tg) => (
+            <span key={tg.name} className="wb-pill">
+              <i style={{ background: tg.color ?? undefined }} />
+              {tg.name}
+            </span>
+          ))}
+        {d && (
+          <span className={cn("wb-pill", d.late && "wb-pill--late", d.soon && "wb-pill--soon")}>Due {d.label}</span>
+        )}
+      </div>
+      {open > 0 && n.group !== "completed" && (
+        <p className="wb-rp__warn">
+          <Lock className="size-3.5" /> Requires {open} more Item{open > 1 ? "s" : ""} first
+        </p>
+      )}
+      <div className="wb-rp__btns">
+        <button
+          type="button"
+          className={cn("wb-btn", next.cls)}
+          disabled={!stateIds[next.group]}
+          onClick={() => onState(n.id, next.group)}
+          data-wb-silent
+        >
+          {next.label}
+        </button>
+        <Link className="wb-btn wb-btn--ghost" to={`/${slug}/browse/${ident}-${n.seq}/`}>
+          Open item
+        </Link>
+      </div>
+      {text && <p className="wb-rp__desc">{text}</p>}
+
+      <section className="wb-rp__sec">
+        <h3>
+          Requires <b>{reqs.length}</b>
+          {!picking && (
+            <button type="button" className="wb-rp__add" onClick={() => setPicking(true)}>
+              <Plus className="size-3.5" /> Add
+            </button>
+          )}
+        </h3>
+        {picking && (
+          <RequirementPicker
+            item={n}
+            all={all}
+            onClose={() => setPicking(false)}
+            onAdd={(id) => {
+              setPicking(false);
+              onLink(n.id, id, true);
+            }}
+          />
+        )}
+        <ul>
+          {reqs.map((r) => (
+            <ItemLine key={r.id} it={r} onPick={() => onPick(r.id)} onRemove={() => onLink(n.id, r.id, false)} />
+          ))}
+          {!reqs.length && !picking && <li className="wb-muted">Nothing: it can be crafted any time.</li>}
+        </ul>
+      </section>
+      {(!!comps.length || parent) && (
+        <section className="wb-rp__sec">
+          <h3>{parent ? "Component of" : "Components"}</h3>
+          <ul>
+            {parent && <ItemLine it={parent} onPick={() => onPick(parent.id)} />}
+            {comps.map((c) => (
+              <ItemLine key={c.id} it={c} onPick={() => onPick(c.id)} />
+            ))}
+          </ul>
+        </section>
+      )}
+      {!!unlocks.length && (
+        <section className="wb-rp__sec">
+          <h3>
+            Unlocks <b>{unlocks.length}</b>
+          </h3>
+          <ul>
+            {unlocks.map((u) => (
+              <ItemLine key={u.id} it={u} onPick={() => onPick(u.id)} />
+            ))}
+          </ul>
+        </section>
+      )}
+    </aside>
+  );
+}
+
+function SummaryPanel({
+  title,
+  icon,
+  kicker,
+  items,
+  done,
+  total,
+  links,
+  onPick,
+  onClose,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  kicker: string;
+  items: TPlaced[];
+  done: number;
+  total: number;
+  links: React.ReactNode;
+  onPick: (id: string) => void;
+  onClose: () => void;
+}) {
+  const crafting = items.filter((p) => p.group === "started");
+  const ready = items.filter((p) => p.ready);
+  const pct = total ? (done / total) * 100 : 0;
+  return (
+    <aside className="wb-rp" aria-label="Research panel" data-wb-panel>
+      <header className="wb-rp__hd">
+        <span className="wb-rp__kick">{kicker}</span>
+        <button type="button" className="wb-rp__close" onClick={onClose} aria-label="Close">
+          <X className="size-4" />
+        </button>
+      </header>
+      <div className="wb-rp__hero">
+        {icon}
+        <h2 className="wb-rp__title">{title}</h2>
+      </div>
+      <div className="wb-colhd__bar">
+        <i style={{ width: `${pct}%` }} />
+      </div>
+      <p className="wb-rp__stat">
+        {done}/{total} crafted · {crafting.length} crafting · {ready.length} ready
+      </p>
+      {links && <div className="wb-rp__btns">{links}</div>}
+      {!!crafting.length && (
+        <section className="wb-rp__sec">
+          <h3>
+            Crafting <b>{crafting.length}</b>
+          </h3>
+          <ul>
+            {crafting.map((p) => (
+              <ItemLine key={p.id} it={p} onPick={() => onPick(p.id)} />
+            ))}
+          </ul>
+        </section>
+      )}
+      <section className="wb-rp__sec">
+        <h3>
+          Ready to craft <b>{ready.length}</b>
+        </h3>
+        <ul>
+          {ready.slice(0, 10).map((p) => (
+            <ItemLine key={p.id} it={p} onPick={() => onPick(p.id)} />
+          ))}
+          {!ready.length && <li className="wb-muted">Nothing ready: everything open needs something first.</li>}
+        </ul>
+      </section>
+    </aside>
+  );
+}
+
+// ---------------------------------------------------------------- page
+
+function readPref(key: string) {
   try {
     return localStorage.getItem(key);
   } catch {
@@ -183,256 +516,389 @@ function writePref(key: string, v: string) {
   try {
     localStorage.setItem(key, v);
   } catch {
-    /* private mode: not remembered */
+    /* not remembered in private mode */
   }
 }
 
-function CraftList({
-  data,
-  kitsById,
-  kit,
-  onClearKit,
-  slug,
-  pid,
-}: {
-  data: TTree;
-  kitsById: Record<string, TTreeKit>;
-  kit: TTreeKit | null;
-  onClearKit: () => void;
-  slug: string;
-  pid: string;
-}) {
-  const tags = data.labels ?? {};
-  const all = data.items ?? [...data.kits.flatMap((k) => k.items), ...data.loose];
-  const hasTags = all.some((it) => (it.labels ?? []).some((l) => tags[l]));
-  const options: Array<[TGroupBy, string]> = [
-    ["status", "Status"],
-    ...(hasTags ? ([["tag", "Tag"]] as Array<[TGroupBy, string]>) : []),
-    ...(data.kits.length ? ([["kit", "Kit"]] as Array<[TGroupBy, string]>) : []),
-    ["grade", "Grade"],
-  ];
-  const prefKey = `wb:tt:group:${pid}`;
-  const fallback: TGroupBy = !data.kits.length && hasTags ? "tag" : "status";
-  const [by, setBy] = useState<TGroupBy>(fallback);
-  useEffect(() => {
-    const saved = readPref(prefKey) as TGroupBy | null;
-    setBy(saved && options.some(([k]) => k === saved) ? saved : fallback);
-    // options only change with the data
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefKey, fallback]);
-  const [open, setOpen] = useState<Record<string, boolean>>({});
-
-  const items = kit ? all.filter((it) => (it.kits ?? []).includes(kit.id)) : all;
-  const groups = groupItems(items, by, tags, data.kits);
-  const isOpen = (g: TGroup) => open[g.key] ?? !(by === "status" && CLOSED.has(g.key));
-
-  return (
-    <section className="wb-list" aria-label="Items">
-      <header className="wb-list__bar">
-        <h3>{kit ? "Kit items" : "Items"}</h3>
-        {kit && (
-          <span className="wb-list__kit">
-            <RustLogo logo={kit.logo} size={18} />
-            <b>{kit.name}</b>
-            <Link to={`/${slug}/projects/${pid}/modules/${kit.id}`}>Open Kit</Link>
-            <button type="button" onClick={onClearKit} aria-label="Show all Items">
-              <X className="size-3.5" />
-            </button>
-          </span>
-        )}
-        <span className="wb-seg" role="group" aria-label="Group by">
-          {options.map(([k, label]) => (
-            <button
-              key={k}
-              type="button"
-              className={cn(by === k && "wb-seg--on")}
-              aria-pressed={by === k}
-              onClick={() => {
-                setBy(k);
-                writePref(prefKey, k);
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </span>
-      </header>
-      {groups.map((g) => {
-        const done = g.items.filter((it) => it.group === "completed").length;
-        const shut = !isOpen(g);
-        return (
-          <div key={g.key} className="wb-list__group">
-            <button
-              type="button"
-              className="wb-list__hd"
-              aria-expanded={!shut}
-              onClick={() => setOpen({ ...open, [g.key]: shut })}
-            >
-              <ChevronRight className={cn("wb-list__chev size-3.5", !shut && "wb-list__chev--open")} />
-              {g.icon ?? <i className="wb-list__dot" style={{ background: g.color ?? undefined }} />}
-              <span>{g.label}</span>
-              <b>{by === "status" ? g.items.length : `${done}/${g.items.length}`}</b>
-            </button>
-            {!shut &&
-              g.items.map((it) => (
-                <ItemRow
-                  key={it.id}
-                  it={it}
-                  ident={data.blueprint.identifier}
-                  slug={slug}
-                  tags={tags}
-                  kits={kitsById}
-                  showKit={by !== "kit" && !kit}
-                  showTags={by !== "tag"}
-                />
-              ))}
-          </div>
-        );
-      })}
-      {!items.length && <p className="wb-muted">No Items here yet.</p>}
-    </section>
-  );
+function buildNodes(items: TPlaneItem[], t: TTree): TNodeIn[] {
+  return items.map((it) => {
+    const group = t.state_groups?.[it.state_id] ?? "backlog";
+    return {
+      id: it.id,
+      name: it.name,
+      seq: it.sequence_id,
+      group,
+      priority: it.priority ?? "none",
+      target: it.target_date,
+      decay: decayOf(group, it.updated_at),
+      parent: it.parent_id,
+      labels: it.label_ids ?? [],
+      kits: it.module_ids ?? [],
+      components: it.sub_issues_count ?? 0,
+      blockers: (it.issue_relation ?? []).filter((r) => r.relation_type === "blocked_by").map((r) => r.id),
+    };
+  });
 }
 
-function KitNode({
-  kit,
-  next,
-  selected,
-  onSelect,
-}: {
-  kit: TTreeKit;
-  next: boolean;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const open = sortedBy(
-    kit.items.filter((it) => !CLOSED.has(it.group)),
-    rank
-  );
-  const count = (g: string) => kit.items.filter((it) => it.group === g).length;
-  const pct = kit.total ? (kit.done / kit.total) * 100 : 0;
-  return (
-    <div className={cn("wb-tt-col", `wb-tt-col--${kit.state}`, selected && "wb-tt-col--sel")}>
-      <button
-        type="button"
-        className={cn("wb-tt-kit", next && "wb-tt-kit--next")}
-        onClick={onSelect}
-        aria-pressed={selected}
-        aria-label={`${kit.name}: show its Items`}
-      >
-        {next && <span className="wb-brk" aria-hidden />}
-        <RustLogo logo={kit.logo} size={46} />
-        {kit.state === "locked" && (
-          <span className="wb-tt-kit__lock">
-            <Lock className="size-4" />
-          </span>
-        )}
-      </button>
-      <button type="button" className="wb-tt-card" onClick={onSelect}>
-        <span className="wb-tt-card__name">{kit.name}</span>
-        <span className="wb-tt-card__bar">
-          <i style={{ width: `${pct}%` }} />
-        </span>
-        <span className="wb-tt-card__counts">
-          <span>
-            {kit.done}/{kit.total} crafted
-          </span>
-          {!!count("started") && <span className="wb-tt-card__c--started">{count("started")} crafting</span>}
-        </span>
-        {open.slice(0, 3).map((it) => (
-          <span key={it.id} className={cn("wb-tt-card__item", `wb-tt-card__item--${it.group}`)}>
-            <StatusIcon group={it.group} />
-            <span>{it.name}</span>
-          </span>
-        ))}
-        {open.length > 3 && <span className="wb-tt-card__more">+{open.length - 3} more</span>}
-      </button>
-    </div>
-  );
-}
-
-// next / crafting first, crafted last: the tree reads left to right like a plan
-function kitOrder(k: TTreeKit) {
-  return { crafting: 0, "to-craft": 1, locked: 2, crafted: 3 }[k.state];
+function columnsFor(t: TTree | undefined, nodes: TNodeIn[]) {
+  const tags = t?.labels ?? {};
+  const kits = t?.kits ?? [];
+  const kitIds = new Set(kits.map((k) => k.id));
+  const open = nodes.filter((n) => n.group !== "cancelled");
+  if (kits.length) {
+    const cols: TColIn[] = kits.map((k) => ({ key: k.id, label: k.name, logo: k.logo }));
+    if (open.some((n) => !n.kits.some((k) => kitIds.has(k))))
+      cols.push({ key: NO_COL, label: "No Kit", logo: t?.blueprint.logo });
+    return { cols, mode: "kit" as const, of: (n: TNodeIn) => n.kits.find((k) => kitIds.has(k)) ?? NO_COL };
+  }
+  const used = [...new Set(open.flatMap((n) => n.labels.filter((l) => tags[l])))];
+  if (used.length) {
+    const cols: TColIn[] = used.map((id) => ({ key: id, label: tags[id].name, color: tags[id].color }));
+    // oxlint-disable-next-line unicorn/no-array-sort -- sorting a fresh copy
+    cols.sort((a, b) => a.label.localeCompare(b.label));
+    if (open.some((n) => !n.labels.some((l) => tags[l]))) cols.push({ key: NO_COL, label: "Untagged", color: null });
+    return { cols, mode: "tag" as const, of: (n: TNodeIn) => n.labels.find((l) => tags[l]) ?? NO_COL };
+  }
+  return { cols: [{ key: NO_COL, label: "Items", logo: t?.blueprint.logo }], mode: "none" as const, of: () => NO_COL };
 }
 
 export function TechTree() {
   const { workspaceSlug, projectId } = useParams();
   const slug = workspaceSlug?.toString() ?? "";
   const pid = projectId?.toString();
-  const { data, error } = useWbTree(pid);
+  const { data: t, error } = useWbTree(pid);
+  const { data: items, mutate: refetch, error: itemsError } = usePlaneItems(slug, pid);
   const { data: home } = useWbHome();
   const [tc, setTc] = useState(false);
-  const [kitId, setKitId] = useState<string | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  const bpHome = home?.blueprints.find((b) => b.id === pid);
-  const kitsById = useMemo(() => Object.fromEntries((data?.kits ?? []).map((k) => [k.id, k])), [data?.kits]);
+  const [sel, setSel] = useState<TSel>(null);
+  const [hover, setHover] = useState<string | null>(null);
+  const [showCrafted, setShowCrafted] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const scroller = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; y: number; sl: number; st: number; moved: boolean } | null>(null);
+
+  useEffect(() => {
+    setShowCrafted(readPref("wb:tt:crafted") === "1");
+    if (window.innerWidth < 768) setZoom(0.8);
+  }, []);
+  useEffect(() => setSel(null), [pid]);
+
+  const tags = t?.labels ?? {};
+  const nodesIn = useMemo(() => (items && t ? buildNodes(items, t) : []), [items, t]);
+  const all = useMemo(() => new Map(nodesIn.map((n) => [n.id, n])), [nodesIn]);
+  const cols = useMemo(() => columnsFor(t, nodesIn), [t, nodesIn]);
+  const lay: TLayout | null = useMemo(
+    () => (t && items ? layoutTree(nodesIn, cols.cols, cols.of, showCrafted) : null),
+    [t, items, nodesIn, cols, showCrafted]
+  );
+
+  const focusId = hover ?? (sel?.kind === "item" ? sel.id : null);
+  const lit = useMemo(() => (focusId ? pathOf(focusId, all) : null), [focusId, all]);
+  const colLit = sel?.kind === "col" ? sel.id : null;
 
   if (error) return <WbPage title="Tech tree">{<p className="wb-muted">This Blueprint has no tree.</p>}</WbPage>;
-  if (!data || !pid) return <WbPage title="Tech tree">{<p className="wb-muted">Loading the tree…</p>}</WbPage>;
+  if (itemsError)
+    return <WbPage title="Tech tree">{<p className="wb-muted">Couldn't load the Items. Try again.</p>}</WbPage>;
+  if (!t || !lay || !pid) return <WbPage title="Tech tree">{<p className="wb-muted">Loading the tree…</p>}</WbPage>;
 
-  const kits = sortedBy(data.kits, kitOrder);
-  const pct = data.total ? Math.round((data.done / data.total) * 100) : 0;
-  const select = (id: string) => {
-    setKitId(kitId === id ? null : id);
-    if (kitId !== id)
-      requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  const bpHome = home?.blueprints.find((b) => b.id === pid);
+  const total = nodesIn.filter((n) => n.group !== "cancelled").length;
+  const done = nodesIn.filter((n) => n.group === "completed").length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const placed = [...lay.nodes.values()];
+  const ident = t.blueprint.identifier;
+
+  const scrollTo = (id: string) => {
+    const el = scroller.current;
+    const p = lay.nodes.get(id);
+    if (!p || !el) return;
+    el.scrollTo({ left: p.x * zoom - 40, top: p.y * zoom - el.clientHeight / 3, behavior: "smooth" });
   };
+  const pick = (id: string) => {
+    if (!lay.nodes.has(id) && all.get(id)?.group === "completed") setShowCrafted(true);
+    setSel({ kind: "item", id });
+    setTimeout(() => scrollTo(id), 60);
+  };
+  const refreshGame = () => {
+    for (const ms of [1500, 5000])
+      setTimeout(() => void mutateGlobal((k) => typeof k === "string" && k.startsWith("wb:")), ms);
+  };
+  const onState = async (id: string, group: string) => {
+    const sid = t.state_ids?.[group];
+    if (!sid || !items) return;
+    play(group === "completed" ? "move" : "click");
+    await refetch(
+      items.map((it) => (it.id === id ? { ...it, state_id: sid, updated_at: new Date().toISOString() } : it)),
+      false
+    );
+    try {
+      await setItemState(slug, pid, id, sid);
+    } finally {
+      void refetch();
+      refreshGame();
+    }
+  };
+  const onLink = async (item: string, blocker: string, add: boolean) => {
+    if (!items) return;
+    await refetch(
+      // oxlint-disable-next-line no-map-spread -- a new array for SWR
+      items.map((it) =>
+        it.id !== item
+          ? it
+          : {
+              ...it,
+              issue_relation: add
+                ? [...it.issue_relation, { id: blocker, relation_type: "blocked_by", project_id: pid }]
+                : it.issue_relation.filter((r) => !(r.id === blocker && r.relation_type === "blocked_by")),
+            }
+      ),
+      false
+    );
+    try {
+      await (add ? addRequirement(slug, pid, item, blocker) : removeRequirement(slug, pid, item, blocker));
+    } finally {
+      void refetch();
+    }
+  };
+  const setZoomClamped = (z: number) => setZoom(Math.min(1.3, Math.max(0.35, Math.round(z * 100) / 100)));
+  const fit = () => {
+    const el = scroller.current;
+    if (el) setZoomClamped(zoom === 1 ? Math.min(1, (el.clientWidth - 24) / lay.width) : 1);
+  };
+
+  const selItem = sel?.kind === "item" ? all.get(sel.id) : undefined;
+  const selCol = sel?.kind === "col" ? lay.cols.find((c) => c.key === sel.id) : undefined;
+  const colLabel = (n: TNodeIn) => lay.cols.find((c) => c.key === cols.of(n))?.label;
+
+  // the wires from the Blueprint down to every column
+  const rootX = 40;
+  const lastX = lay.cols.length ? lay.cols[lay.cols.length - 1].x + HEADER_W / 2 : rootX;
+  const busD =
+    `M${rootX} ${lay.root.h}V${BUS_TOP}H${Math.max(lastX, rootX)}` +
+    lay.cols.map((c) => `M${c.x + HEADER_W / 2} ${BUS_TOP}V${lay.headerY}`).join("");
+
   return (
-    <WbPage title={data.blueprint.name}>
-      <div className="wb-tt">
-        <div className="wb-tt__top">
-          <div className={cn("wb-tt-root", data.learned && "wb-tt-root--learned")}>
-            <RustLogo logo={data.blueprint.logo} size={64} />
-          </div>
-          <div className="wb-tt__title">
-            <small>{data.learned ? "Blueprint learned" : "Blueprint"}</small>
-            <h1>{data.blueprint.name}</h1>
-            <div className="wb-tt__bar">
-              <i style={{ width: `${pct}%` }} />
-            </div>
-            <div className="wb-tags">
-              <i>
-                {data.done}/{data.total} crafted
-              </i>
-              {data.blueprint.target && <i>Target {new Date(data.blueprint.target).toLocaleDateString()}</i>}
-              {data.blueprint.domain && <i>{data.blueprint.domain}</i>}
-              <button type="button" className={cn("wb-mode", `wb-mode--${data.tc.state}`)} onClick={() => setTc(true)}>
-                Tool Cupboard
+    <WbPage title={t.blueprint.name}>
+      <div className="wb-rt">
+        <div className="wb-rt__bar">
+          <span className="wb-rt__title">
+            <RustLogo logo={t.blueprint.logo} size={26} />
+            <b>{t.blueprint.name}</b>
+            <span className="wb-rt__pct">
+              {done}/{total} · {pct}%
+            </span>
+          </span>
+          <span className="wb-rt__tools">
+            <button
+              type="button"
+              className={cn("wb-rt__tool", showCrafted && "wb-rt__tool--on")}
+              aria-pressed={showCrafted}
+              onClick={() => {
+                setShowCrafted(!showCrafted);
+                writePref("wb:tt:crafted", showCrafted ? "0" : "1");
+              }}
+            >
+              <Check className="size-3.5" />
+              {showCrafted ? "Hide crafted" : `Show crafted${done ? ` (${done})` : ""}`}
+            </button>
+            <button type="button" className={cn("wb-mode", `wb-mode--${t.tc.state}`)} onClick={() => setTc(true)}>
+              Tool Cupboard
+            </button>
+            <span className="wb-rt__zoom">
+              <button type="button" onClick={() => setZoomClamped(zoom - 0.15)} aria-label="Zoom out">
+                <Minus className="size-3.5" />
               </button>
-              <Link className="wb-tags__link" to={`/${slug}/projects/${pid}/issues/`}>
-                Board view →
-              </Link>
-            </div>
-          </div>
+              <button type="button" onClick={fit} className="wb-rt__fit" title="Fit / 100%">
+                {Math.round(zoom * 100)}%
+              </button>
+              <button type="button" onClick={() => setZoomClamped(zoom + 0.15)} aria-label="Zoom in">
+                <Plus className="size-3.5" />
+              </button>
+            </span>
+            <Link className="wb-tags__link" to={`/${slug}/projects/${pid}/issues/`}>
+              List view →
+            </Link>
+          </span>
         </div>
 
-        {!!kits.length && (
-          <div className="wb-tt__tree">
-            <div className="wb-tt__bus" />
-            <div className="wb-tt__cols">
-              {kits.map((k) => (
-                <KitNode
-                  key={k.id}
-                  kit={k}
-                  next={k.id === data.next}
-                  selected={k.id === kitId}
-                  onSelect={() => select(k.id)}
-                />
-              ))}
+        <div className={cn("wb-rt__wrap", sel && "wb-rt__wrap--panel")}>
+          {/* drag on the background pans the map (touch scrolls natively) */}
+          {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events */}
+          <div
+            ref={scroller}
+            className="wb-rt__canvas"
+            onClick={() => {
+              if (!drag.current?.moved) setSel(null);
+            }}
+            onPointerDown={(e) => {
+              if (e.pointerType !== "mouse" || (e.target as HTMLElement).closest("button,a")) return;
+              const el = scroller.current!;
+              drag.current = { x: e.clientX, y: e.clientY, sl: el.scrollLeft, st: el.scrollTop, moved: false };
+            }}
+            onPointerMove={(e) => {
+              const d = drag.current;
+              if (!d || e.buttons !== 1) return;
+              if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 4) d.moved = true;
+              scroller.current!.scrollLeft = d.sl - (e.clientX - d.x);
+              scroller.current!.scrollTop = d.st - (e.clientY - d.y);
+            }}
+            onPointerUp={() => setTimeout(() => (drag.current = null), 0)}
+          >
+            <div className="wb-rt__size" style={{ width: lay.width * zoom + 48, height: lay.height * zoom + 48 }}>
+              <div className="wb-rt__map" style={{ width: lay.width, height: lay.height, transform: `scale(${zoom})` }}>
+                <svg className="wb-rt__edges" width={lay.width} height={lay.height} aria-hidden>
+                  <defs>
+                    <marker
+                      id="wb-arrow"
+                      viewBox="0 0 8 8"
+                      refX="7"
+                      refY="4"
+                      markerWidth="7"
+                      markerHeight="7"
+                      orient="auto"
+                    >
+                      <path d="M0 0L8 4L0 8z" fill="context-stroke" />
+                    </marker>
+                  </defs>
+                  <path d={busD} className="wb-edge wb-edge--bus" />
+                  {lay.edges.map((e) => {
+                    const on = lit
+                      ? lit.has(e.from) && lit.has(e.to)
+                      : colLit
+                        ? lay.nodes.get(e.to)?.col === colLit
+                        : false;
+                    const off = (!!lit || !!colLit) && !on;
+                    return (
+                      <path
+                        key={e.id}
+                        d={e.d}
+                        className={cn(
+                          "wb-edge",
+                          `wb-edge--${e.kind}`,
+                          e.done && "wb-edge--done",
+                          on && "wb-edge--lit",
+                          off && "wb-edge--off"
+                        )}
+                        markerEnd={e.kind === "extra" ? "url(#wb-arrow)" : undefined}
+                      />
+                    );
+                  })}
+                </svg>
+
+                <button
+                  type="button"
+                  className={cn("wb-rt-root", sel?.kind === "root" && "wb-colhd--sel")}
+                  style={{ width: lay.root.w, height: lay.root.h }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSel({ kind: "root", id: pid });
+                  }}
+                >
+                  <span className="wb-rt-root__icon">
+                    <RustLogo logo={t.blueprint.logo} size={56} />
+                  </span>
+                  <span className="wb-colhd__body">
+                    <small>{done === total && total ? "Blueprint learned" : "Blueprint"}</small>
+                    <span className="wb-colhd__name">{t.blueprint.name}</span>
+                    <span className="wb-colhd__bar">
+                      <i style={{ width: `${pct}%` }} />
+                    </span>
+                  </span>
+                </button>
+
+                <div className="wb-rt__cols" style={{ top: lay.headerY }}>
+                  {lay.cols.map((c) => (
+                    <ColHeader
+                      key={c.key}
+                      c={c}
+                      sel={sel?.kind === "col" && sel.id === c.key}
+                      dim={!!lit}
+                      onSelect={() => setSel({ kind: "col", id: c.key })}
+                    />
+                  ))}
+                </div>
+
+                {placed.map((p) => (
+                  // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- hover only lights the path
+                  <div key={p.id} onMouseEnter={() => setHover(p.id)} onMouseLeave={() => setHover(null)}>
+                    <ItemNode
+                      p={p}
+                      tags={tags}
+                      sel={sel?.kind === "item" && sel.id === p.id}
+                      dim={(!!lit && !lit.has(p.id)) || (!!colLit && p.col !== colLit)}
+                      onSelect={() => setSel({ kind: "item", id: p.id })}
+                    />
+                  </div>
+                ))}
+
+                {!placed.length && (
+                  <p className="wb-rt__empty" style={{ top: lay.headerY + HEADER_H + 30 }}>
+                    {total
+                      ? "Everything here is crafted. Show crafted to see the whole tree."
+                      : "No Items yet. Add Items to this Blueprint."}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        )}
 
-        <div ref={listRef} className="wb-tt__list">
-          <CraftList
-            data={data}
-            kitsById={kitsById}
-            kit={kitId ? (kitsById[kitId] ?? null) : null}
-            onClearKit={() => setKitId(null)}
-            slug={slug}
-            pid={pid}
-          />
+          {selItem && (
+            <ItemPanel
+              n={selItem}
+              all={all}
+              tags={tags}
+              colLabel={colLabel(selItem)}
+              slug={slug}
+              pid={pid}
+              ident={ident}
+              stateIds={t.state_ids ?? {}}
+              onPick={pick}
+              onClose={() => setSel(null)}
+              onState={(id, g) => void onState(id, g)}
+              onLink={(a, b, add) => void onLink(a, b, add)}
+            />
+          )}
+          {selCol && (
+            <SummaryPanel
+              title={selCol.label}
+              icon={<ColIcon c={selCol} size={56} />}
+              kicker={cols.mode === "kit" && selCol.key !== NO_COL ? "Kit" : "Group"}
+              items={placed.filter((p) => p.col === selCol.key)}
+              done={selCol.done}
+              total={selCol.total}
+              onPick={pick}
+              onClose={() => setSel(null)}
+              links={
+                cols.mode === "kit" && selCol.key !== NO_COL ? (
+                  <Link className="wb-btn wb-btn--ghost" to={`/${slug}/projects/${pid}/modules/${selCol.key}`}>
+                    Open Kit
+                  </Link>
+                ) : null
+              }
+            />
+          )}
+          {sel?.kind === "root" && (
+            <SummaryPanel
+              title={t.blueprint.name}
+              icon={<RustLogo logo={t.blueprint.logo} size={56} />}
+              kicker="Blueprint"
+              items={placed}
+              done={done}
+              total={total}
+              onPick={pick}
+              onClose={() => setSel(null)}
+              links={
+                <>
+                  <button type="button" className="wb-btn wb-btn--ghost" onClick={() => setTc(true)}>
+                    Tool Cupboard
+                  </button>
+                  <Link className="wb-btn wb-btn--ghost" to={`/${slug}/projects/${pid}/issues/`}>
+                    List view
+                  </Link>
+                </>
+              }
+            />
+          )}
         </div>
       </div>
       {tc && bpHome && <ToolCupboard bp={bpHome} onClose={() => setTc(false)} />}
