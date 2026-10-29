@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { Music, Volume2, VolumeX } from "lucide-react";
 import { useParams } from "next/navigation";
+import { Link } from "react-router";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 import { useWbState } from "../lib/api";
@@ -49,10 +50,10 @@ function ScrapChip() {
   if (!data || !workspaceSlug) return null;
   return (
     <Tooltip tooltipContent="Scrap: earned by crafting Items. Spend it in the shop." position="bottom">
-      <a href={`/${workspaceSlug.toString()}/wb/shop`} className="wb-chip">
+      <Link to={`/${workspaceSlug.toString()}/wb/shop`} className="wb-chip">
         <RustItem item="scrap" size={20} />
         <b>{data.scrap.balance.toLocaleString()}</b>
-      </a>
+      </Link>
     </Tooltip>
   );
 }
@@ -74,13 +75,13 @@ function CupboardChip() {
       }
       position="bottom"
     >
-      <a
-        href={`/${workspaceSlug.toString()}/wb/blueprints`}
+      <Link
+        to={`/${workspaceSlug.toString()}/wb/blueprints`}
         className={cn("wb-chip", decaying ? "wb-chip--bad" : "wb-chip--warn")}
       >
         <RustItem item="cupboard.tool" size={20} />
         <b>{decaying || due}</b>
-      </a>
+      </Link>
     </Tooltip>
   );
 }

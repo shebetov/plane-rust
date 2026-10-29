@@ -80,7 +80,7 @@ def test_ledger_keeps_scrap_after_plane_archives_the_item(env):
     c, plane, app = env
     c.get("/wb/api/state")
     plane.data["p1"] = [i for i in plane.data["p1"] if i["id"] != "i1"]  # archived: gone from the list
-    app.state.world.fetched = 0
+    c.portal.call(app.state.world.ensure, True)  # what a webhook does
     assert c.get("/wb/api/state").json()["scrap"]["earned"] == 40
 
 
@@ -128,7 +128,7 @@ def test_visit_returns_items_crafted_since_last_time(env):
     c, plane, app = env
     assert c.post("/wb/api/visit").json() == {"since": None, "crafted": []}
     plane.data["p1"][1].update(state="s-c", completed_at=datetime.now(UTC).isoformat())
-    app.state.world.fetched = 0
+    c.portal.call(app.state.world.ensure, True)  # what a webhook does
     r = c.post("/wb/api/visit").json()
     assert [x["name"] for x in r["crafted"]] == ["Run"]
 
@@ -136,13 +136,26 @@ def test_visit_returns_items_crafted_since_last_time(env):
 def test_a_blueprint_with_no_items_needs_no_upkeep(env):
     c, plane, app = env
     plane.data["p1"] = []
-    app.state.world.fetched = 0
+    c.portal.call(app.state.world.ensure, True)  # what a webhook does
     assert c.get("/wb/api/state").json()["tc"]["p1"] == {"state": "empty", "until": None}
 
 
 def test_craft_queue_lists_items_in_crafting(env):
     c, plane, app = env
     plane.data["p1"][1]["state"] = "s-s"
-    app.state.world.fetched = 0
+    c.portal.call(app.state.world.ensure, True)  # what a webhook does
     q = c.get("/wb/api/crafting").json()["items"]
     assert [(i["name"], i["identifier"], i["seq"]) for i in q] == [("Run", "SF", 2)]
+
+
+def test_stale_cache_is_served_at_once_and_refreshed_in_the_background(env):
+    c, plane, app = env
+    c.get("/wb/api/state")
+    plane.data["p1"][1]["state"] = "s-s"
+    app.state.world.fetched = 0
+    assert c.get("/wb/api/crafting").json()["items"] == []  # no wait: the old copy
+    async def settle():
+        await app.state.world._bg
+
+    c.portal.call(settle)  # let the refresh finish
+    assert [i["name"] for i in c.get("/wb/api/crafting").json()["items"]] == ["Run"]

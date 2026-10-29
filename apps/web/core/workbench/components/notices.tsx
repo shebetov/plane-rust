@@ -4,6 +4,7 @@
  * Fed by the companion's live events and by "crafted while you were away" on load.
  */
 import { useEffect, useSyncExternalStore } from "react";
+import { Link } from "react-router";
 import { cn } from "@plane/utils";
 import type { TLogo } from "../lib/api";
 import { play } from "../sound/engine";
@@ -69,9 +70,10 @@ export function NoticeStack({ frame }: { frame?: string }) {
   return (
     <div className="wb-notices" aria-live="polite">
       {list.map((n) => (
-        <a
+        <Link
           key={n.id}
-          href={n.href}
+          to={n.href ?? "#"}
+          onClick={(e) => !n.href && e.preventDefault()}
           className={cn("wb-notice", `wb-notice--${n.kind}`, frame && `wb-notice--${frame}`)}
           data-wb-silent
         >
@@ -87,7 +89,7 @@ export function NoticeStack({ frame }: { frame?: string }) {
               <RustItem item="scrap" size={18} />+{n.scrap}
             </span>
           )}
-        </a>
+        </Link>
       ))}
     </div>
   );

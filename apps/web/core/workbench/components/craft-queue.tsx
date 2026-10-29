@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import { useParams } from "next/navigation";
+import { Link } from "react-router";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 import { useWbQueue } from "../lib/api";
@@ -33,8 +34,8 @@ export function CraftQueue() {
             tooltipContent={`${it.identifier}-${it.seq} · ${it.name}${it.decay ? " · decaying" : ""}`}
             position="top"
           >
-            <a
-              href={`/${workspaceSlug.toString()}/browse/${it.identifier}-${it.seq}/`}
+            <Link
+              to={`/${workspaceSlug.toString()}/browse/${it.identifier}-${it.seq}/`}
               className={cn("wb-slot", it.decay > 0 && `wb-slot--decay${it.decay}`)}
             >
               <RustLogo logo={it.logo} size={30} />
@@ -42,7 +43,7 @@ export function CraftQueue() {
               <span className="wb-slot__hp">
                 <i style={{ width: `${HP[it.decay]}%` }} />
               </span>
-            </a>
+            </Link>
           </Tooltip>
         ))}
         {items.length > SHOW && (

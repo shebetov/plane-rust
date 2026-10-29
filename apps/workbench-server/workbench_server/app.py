@@ -35,7 +35,7 @@ RUST_STATE = {"backlog": "Locked", "unstarted": "To Craft", "started": "Crafting
               "completed": "Crafted", "cancelled": "Scrapped"}
 PLANE_DEFAULT_STATE = {"Backlog", "Todo", "In Progress", "Done", "Cancelled"}
 OPEN = ("backlog", "unstarted", "started")
-TTL = 60
+TTL = 600  # webhooks keep the cache fresh; this is only a safety net
 
 
 def now() -> datetime:
@@ -43,8 +43,9 @@ def now() -> datetime:
 
 
 class World:
-    """A cached copy of the Plane data the game needs, refreshed every TTL seconds and
-    right after a webhook. Comparing snapshots is how state changes become events."""
+    """A cached copy of the Plane data the game needs, refreshed right after a webhook and
+    in the background once older than TTL (requests never wait for that). Comparing
+    snapshots is how state changes become events."""
 
     def __init__(self, plane: Plane, db: DB):
         self.plane, self.db = plane, db
@@ -54,15 +55,29 @@ class World:
         self.item_group: dict[str, str] = {}
         self.fetched = 0.0
         self.lock = asyncio.Lock()
-        self.sem = asyncio.Semaphore(4)
+        self.sem = asyncio.Semaphore(2)  # Plane's API has one worker: don't flood it
+        self._bg: asyncio.Task | None = None
         self.listeners: set[asyncio.Queue] = set()
         self.kit_cache: dict[str, tuple[float, dict]] = {}
 
     # ---- loading
     async def ensure(self, force: bool = False) -> None:
         loop = asyncio.get_running_loop()
-        if not force and self.projects and loop.time() - self.fetched < TTL:
+        if not force and self.projects:
+            stale = loop.time() - self.fetched >= TTL
+            if stale and not (self._bg and not self._bg.done()):
+                self._bg = asyncio.create_task(self._reload_quietly())
             return
+        await self._reload(force)
+
+    async def _reload_quietly(self) -> None:
+        try:
+            await self._reload()
+        except Exception:  # the old copy stays; the next request retries
+            log.exception("background refresh failed")
+
+    async def _reload(self, force: bool = False) -> None:
+        loop = asyncio.get_running_loop()
         async with self.lock:
             if not force and self.projects and loop.time() - self.fetched < TTL:
                 return
