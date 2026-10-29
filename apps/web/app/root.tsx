@@ -14,11 +14,6 @@ import { SITE_DESCRIPTION, SITE_NAME } from "@plane/constants";
 import { cn } from "@plane/utils";
 // types
 // assets
-import favicon16 from "@/app/assets/favicon/favicon-16x16.png?url";
-import favicon32 from "@/app/assets/favicon/favicon-32x32.png?url";
-import faviconIco from "@/app/assets/favicon/favicon.ico?url";
-import icon180 from "@/app/assets/icons/icon-180x180.png?url";
-import icon512 from "@/app/assets/icons/icon-512x512.png?url";
 import ogImage from "@/app/assets/og-image.png?url";
 import globalStyles from "@/styles/globals.css?url";
 import type { Route } from "./+types/root";
@@ -30,7 +25,8 @@ import { isStaleAssetError, recoverFromStaleAsset } from "@/lib/stale-asset-erro
 import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
 import { WorkbenchProvider } from "@/workbench/provider";
-// fonts
+// fonts (side-effect imports)
+/* oxlint-disable import/no-unassigned-import */
 import "@fontsource-variable/inter";
 import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 import "@fontsource/material-symbols-rounded";
@@ -38,15 +34,16 @@ import "@fontsource/ibm-plex-mono";
 
 const APP_TITLE = "Workbench";
 
+/** Icons come from the private theme: the in-game Map item, as on the Thesys map. */
+const FAV = "/workbench/theme/favicon";
+
 export const links: LinksFunction = () => [
-  { rel: "icon", type: "image/png", sizes: "32x32", href: favicon32 },
-  { rel: "icon", type: "image/png", sizes: "16x16", href: favicon16 },
-  { rel: "shortcut icon", href: faviconIco },
-  { rel: "manifest", href: "/site.webmanifest.json" },
-  { rel: "apple-touch-icon", href: icon512 },
-  { rel: "apple-touch-icon", sizes: "180x180", href: icon180 },
-  { rel: "apple-touch-icon", sizes: "512x512", href: icon512 },
-  { rel: "manifest", href: "/manifest.json" },
+  { rel: "icon", type: "image/png", sizes: "32x32", href: `${FAV}/icon-32.png` },
+  { rel: "icon", type: "image/png", sizes: "16x16", href: `${FAV}/icon-16.png` },
+  { rel: "manifest", href: `${FAV}/site.webmanifest` },
+  { rel: "apple-touch-icon", href: `${FAV}/icon-180.png` },
+  { rel: "apple-touch-icon", sizes: "180x180", href: `${FAV}/icon-180.png` },
+  { rel: "apple-touch-icon", sizes: "512x512", href: `${FAV}/icon-512.png` },
   { rel: "stylesheet", href: globalStyles },
   {
     rel: "preload",
