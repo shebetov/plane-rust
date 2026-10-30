@@ -12,6 +12,7 @@ import { useWbHome, useWbState } from "../lib/api";
 import { currentWipe, leftText } from "../lib/wipe";
 import { RustItem, RustLogo } from "../components/rust-icon";
 import { useNow } from "../components/top-bar";
+import { DustCanvas } from "../components/dust";
 import { WipeReportModal } from "./wipe-report";
 import { Panel, WbPage, ago } from "./shell";
 
@@ -48,7 +49,7 @@ export function MainMenu() {
           <i className="wb-menu__bg1" />
           <i className="wb-menu__bg2" />
           <span className="wb-menu__fog" />
-          <span className="wb-menu__dust" />
+          <DustCanvas className="wb-menu__dust" />
         </div>
         {error && (
           <div className="wb-menu__err">The Workbench server is offline. Your Items are fine: use the sidebar.</div>

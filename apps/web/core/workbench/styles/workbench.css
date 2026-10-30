@@ -784,7 +784,7 @@ html {
   opacity: 0;
   animation:
     wb-bg-in 1.8s ease-out 0.1s forwards,
-    wb-bg-drift 26s ease-in-out infinite alternate;
+    wb-bg-drift 12s ease-in-out infinite alternate;
 }
 .wb-menu__bg1 {
   background-image: url("/workbench/theme/menu/main-1.jpg");
@@ -792,8 +792,8 @@ html {
 .wb-menu__bg i.wb-menu__bg2 {
   background-image: url("/workbench/theme/menu/main-2.jpg");
   animation:
-    wb-bg-swap 24s ease-in-out 6s infinite,
-    wb-bg-drift 26s ease-in-out infinite alternate-reverse;
+    wb-bg-swap 20s ease-in-out 5s infinite,
+    wb-bg-drift 12s ease-in-out infinite alternate-reverse;
 }
 .wb-scene--snow .wb-menu__bg1 {
   background-image: url("/workbench/theme/menu/snow.jpg");
@@ -862,38 +862,21 @@ html {
     radial-gradient(ellipse 30% 18% at 55% 82%, rgba(170, 160, 145, 0.14), transparent 70%),
     radial-gradient(ellipse 18% 12% at 80% 60%, rgba(200, 190, 170, 0.1), transparent 70%);
   filter: blur(8px);
-  animation: wb-fog 38s linear infinite;
+  animation: wb-fog 16s ease-in-out infinite alternate;
 }
 .wb-menu__dust {
   inset: 0;
-  background-image:
-    radial-gradient(circle, rgba(255, 236, 200, 0.55) 0 1px, transparent 1.6px),
-    radial-gradient(circle, rgba(255, 236, 200, 0.35) 0 1px, transparent 1.4px);
-  background-size:
-    230px 230px,
-    150px 170px;
-  background-position:
-    0 0,
-    60px 90px;
-  opacity: 0.6;
-  animation: wb-dust 22s linear infinite;
+  width: 100%;
+  height: 100%;
 }
 @keyframes wb-fog {
   from {
-    transform: translateX(-12%);
+    transform: translate3d(-14%, 1%, 0) scale(1);
   }
   to {
-    transform: translateX(12%);
+    transform: translate3d(14%, -2%, 0) scale(1.08);
   }
 }
-@keyframes wb-dust {
-  to {
-    background-position:
-      40px -460px,
-      20px -250px;
-  }
-}
-
 /* panels come in the way Rust's menu pages do: a short fade with a small slide */
 .wb-menu__join {
   animation: wb-in-right 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s both;
