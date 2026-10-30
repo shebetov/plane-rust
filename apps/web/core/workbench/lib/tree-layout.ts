@@ -67,8 +67,8 @@ const IND = 26;
 const GAP_Y = 12;
 const COL_GAP = 64;
 /** the Blueprint block (its name with the Tool Cupboard under it); the page passes its measured height */
-export const ROOT_W = 460;
-export const ROOT_W_NARROW = 340;
+export const ROOT_W = 340;
+export const ROOT_W_NARROW = 300;
 const MAX_INDENT = 4;
 
 const CLOSED = new Set(["completed", "cancelled"]);

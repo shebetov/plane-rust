@@ -1762,9 +1762,9 @@ html {
 .wb-rt-root {
   flex-direction: column;
 }
-/* scaled down: the whole screen at about three quarters */
+/* scaled down: the whole screen at half size */
 .wb-rt-root .wb-tc {
-  zoom: 0.75;
+  zoom: 0.5;
   padding: 14px 16px 16px;
   cursor: default;
   box-shadow: inset 0 1px 0 rgba(227, 217, 204, 0.1);
