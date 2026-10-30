@@ -34,16 +34,16 @@ import "@fontsource/ibm-plex-mono";
 
 const APP_TITLE = "Workbench";
 
-/** Icons come from the private theme: the in-game Map item, as on the Thesys map. */
+/** Icons come from the private theme: the in-game Workbench (tier 2), on a dark plate for the home screen. */
 const FAV = "/workbench/theme/favicon";
 
 export const links: LinksFunction = () => [
-  { rel: "icon", type: "image/png", sizes: "32x32", href: `${FAV}/icon-32.png` },
-  { rel: "icon", type: "image/png", sizes: "16x16", href: `${FAV}/icon-16.png` },
+  { rel: "icon", type: "image/png", sizes: "32x32", href: `${FAV}/wb-32.png` },
+  { rel: "icon", type: "image/png", sizes: "16x16", href: `${FAV}/wb-16.png` },
   { rel: "manifest", href: `${FAV}/app.webmanifest` },
-  { rel: "apple-touch-icon", href: `${FAV}/apple-180.png` },
-  { rel: "apple-touch-icon", sizes: "180x180", href: `${FAV}/apple-180.png` },
-  { rel: "apple-touch-icon", sizes: "512x512", href: `${FAV}/apple-512.png` },
+  { rel: "apple-touch-icon", href: `${FAV}/wb-180.png` },
+  { rel: "apple-touch-icon", sizes: "180x180", href: `${FAV}/wb-180.png` },
+  { rel: "apple-touch-icon", sizes: "512x512", href: `${FAV}/wb-512.png` },
   { rel: "stylesheet", href: globalStyles },
   {
     rel: "preload",
