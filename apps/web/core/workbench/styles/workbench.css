@@ -922,22 +922,14 @@ html {
     transform: translateY(18px);
   }
 }
-/* reduced motion: nothing moves, but the scenes still crossfade */
+/* reduced motion: the panels appear without sliding. The background keeps its slow drift,
+   smoke and dust on purpose: it is ambient, and the owner wants the scene alive. */
 @media (prefers-reduced-motion: reduce) {
-  .wb-menu__bg i,
   .wb-menu__join,
   .wb-menu__news,
   .wb-hero {
     animation: none;
     opacity: 1;
-  }
-  .wb-menu__bg i.wb-menu__bg2 {
-    opacity: 0;
-    animation: wb-bg-swap 24s ease-in-out 6s infinite;
-  }
-  .wb-menu__fog,
-  .wb-menu__dust {
-    animation: none;
   }
 }
 .wb-menu__err {
