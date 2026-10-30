@@ -139,6 +139,8 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
         <div
           ref={issuePeekOverviewRef}
           className={peekOverviewIssueClassName}
+          // Workbench: opening an Item plays the wooden box sound
+          data-wb-panel="box"
           style={{
             boxShadow:
               "0px 4px 8px 0px rgba(0, 0, 0, 0.12), 0px 6px 12px 0px rgba(16, 24, 40, 0.12), 0px 1px 16px 0px rgba(16, 24, 40, 0.12)",

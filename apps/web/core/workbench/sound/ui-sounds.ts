@@ -1,10 +1,13 @@
 /**
  * Rust UI sounds on Plane's own screens without touching their components:
- *  - click: any button, link, menu item, option, tab, switch or checkbox
- *  - open / close: a dialog or the item peek panel appearing / going away
- * A click that opens or closes a panel plays only the panel sound.
+ *  - click: any button, link, menu item, option, tab, switch or checkbox (Rust's UI tick)
+ *  - open / close: a dialog appearing / going away
+ *  - box: an Item's peek view opening (the small wooden box), marked data-wb-panel="box"
+ * A click that opens or closes a panel plays only the panel sound. Screens with their own
+ * sounds (the research tree) play them directly; any sound swallows the click of that tap.
  */
 import { play } from "./engine";
+import type { TSoundSlot } from "./engine";
 
 const CLICKABLE =
   'button, a[href], [role="button"], [role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [role="option"], [role="tab"], [role="switch"], [role="checkbox"], input[type="checkbox"], summary';
@@ -13,7 +16,7 @@ const PANEL = '[role="dialog"], [data-wb-panel]';
 let pendingClick: number | null = null;
 let panelSoundAt = 0;
 
-function panelSound(slot: "open" | "close") {
+function panelSound(slot: TSoundSlot) {
   const now = performance.now();
   if (now - panelSoundAt < 120) return; // one sound per burst (a dialog swaps its content)
   panelSoundAt = now;
@@ -24,10 +27,11 @@ function panelSound(slot: "open" | "close") {
   play(slot);
 }
 
-function hasPanel(node: Node): boolean {
-  if (!(node instanceof HTMLElement)) return false;
-  if (node.matches(PANEL)) return true;
-  return node.childElementCount < 40 && !!node.querySelector(PANEL);
+/** the panel in an added or removed node, if any */
+function panelIn(node: Node): HTMLElement | null {
+  if (!(node instanceof HTMLElement)) return null;
+  if (node.matches(PANEL)) return node;
+  return node.childElementCount < 40 ? node.querySelector<HTMLElement>(PANEL) : null;
 }
 
 export function startUiSounds() {
@@ -45,13 +49,13 @@ export function startUiSounds() {
   };
 
   const observer = new MutationObserver((records) => {
-    let opened = false;
+    let opened: HTMLElement | null = null;
     let closed = false;
     for (const r of records) {
-      for (const n of r.addedNodes) if (hasPanel(n)) opened = true;
-      for (const n of r.removedNodes) if (hasPanel(n)) closed = true;
+      for (const n of r.addedNodes) opened ??= panelIn(n);
+      for (const n of r.removedNodes) if (panelIn(n)) closed = true;
     }
-    if (opened) panelSound("open");
+    if (opened) panelSound(opened.dataset.wbPanel === "box" ? "box" : "open");
     else if (closed) panelSound("close");
   });
 

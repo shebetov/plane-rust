@@ -66,6 +66,8 @@ const IND = 26;
 const GAP_Y = 12;
 const COL_GAP = 64;
 const ROOT_H = 92;
+/** the Blueprint block: its name on the left, the Tool Cupboard on the right */
+const ROOT_W = 600;
 const BUS_Y = ROOT_H + 30;
 const HEADER_Y = BUS_Y + 30;
 const ITEMS_Y = HEADER_Y + HEADER_H + 26;
@@ -306,9 +308,9 @@ export function layoutTree(
     cols,
     nodes,
     edges,
-    width: Math.max(x - COL_GAP + 40, 360),
+    width: Math.max(x - COL_GAP + 40, ROOT_W + 40),
     height: bottom + 40,
-    root: { x: 0, y: 0, w: 340, h: ROOT_H },
+    root: { x: 0, y: 0, w: ROOT_W, h: ROOT_H },
     headerY: HEADER_Y,
   };
 }

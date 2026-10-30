@@ -20,7 +20,7 @@ import { cn } from "@plane/utils";
 // assets
 import WorkSpaceNotAvailable from "@/app/assets/workspace/workspace-not-available.png?url";
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { WbLoadingScreen } from "@/workbench/components/loading-screen";
 // constants
 import {
   WORKSPACE_MEMBERS,
@@ -139,13 +139,7 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
 
   // if list of workspaces are not there then we have to render the spinner
   if (isParentLoading || allWorkspaces === undefined || loader) {
-    return (
-      <div className="grid h-full place-items-center rounded-lg border border-subtle p-4">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <LogoSpinner />
-        </div>
-      </div>
-    );
+    return <WbLoadingScreen />;
   }
 
   // if workspaces are there and we are trying to access the workspace that we are not part of then show the existing workspaces
@@ -159,14 +153,16 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
             </div>
             <div className="relative flex items-center gap-2">
               <div className="text-13 font-medium">{currentUser?.email}</div>
-              <div
+              <button
+                type="button"
+                aria-label="Sign out"
                 className="relative flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-sm hover:bg-layer-1"
                 onClick={handleSignOut}
               >
                 <Tooltip tooltipContent={"Sign out"} position="top" className="ml-2" isMobile={isMobile}>
                   <LogOut size={14} />
                 </Tooltip>
-              </div>
+              </button>
             </div>
           </div>
           <div className="relative flex h-full w-full flex-grow flex-col items-center justify-center space-y-3">

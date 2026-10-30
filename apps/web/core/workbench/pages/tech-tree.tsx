@@ -26,7 +26,7 @@ import type { TCol, TColIn, TLayout, TNodeIn, TPlaced } from "../lib/tree-layout
 import { BUS_TOP, HEADER_H, HEADER_W, NODE_H, NODE_W, layoutTree, pathOf } from "../lib/tree-layout";
 import { play } from "../sound/engine";
 import { RustItem, RustLogo } from "../components/rust-icon";
-import { ToolCupboard } from "./server-browser";
+import { CupboardStrip } from "./server-browser";
 import { WbPage } from "./shell";
 
 const STATUS: Record<string, string> = {
@@ -341,7 +341,7 @@ function ItemPanel({
         ? { label: "Reopen", group: "unstarted", cls: "wb-btn--ghost" }
         : { label: "Start crafting", group: "started", cls: "wb-btn--amber" };
   return (
-    <aside className="wb-rp" aria-label="Research panel" data-wb-panel>
+    <aside className="wb-rp" aria-label="Research panel">
       <header className="wb-rp__hd">
         <StatusIcon group={n.group} big />
         <span className="wb-rp__kick">
@@ -471,7 +471,7 @@ function SummaryPanel({
   const ready = items.filter((p) => p.ready);
   const pct = total ? (done / total) * 100 : 0;
   return (
-    <aside className="wb-rp" aria-label="Research panel" data-wb-panel>
+    <aside className="wb-rp" aria-label="Research panel">
       <header className="wb-rp__hd">
         <span className="wb-rp__kick">{kicker}</span>
         <button type="button" className="wb-rp__close" onClick={onClose} aria-label="Close">
@@ -589,7 +589,6 @@ export function TechTree() {
   const { data: t, error } = useWbTree(pid);
   const { data: items, mutate: refetch, error: itemsError } = usePlaneItems(slug, pid);
   const { data: home } = useWbHome();
-  const [tc, setTc] = useState(false);
   const [sel, setSel] = useState<TSel>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [showCrafted, setShowCrafted] = useState(false);
@@ -647,9 +646,16 @@ export function TechTree() {
     if (!p || !el) return;
     el.scrollTo({ left: p.x * zoom - 40, top: p.y * zoom - el.clientHeight / 3, behavior: "smooth" });
   };
+  // one sound per selection change: the research table opening, or closing when it goes away
+  const select = (next: TSel) => {
+    if (!next) {
+      if (sel) play("research-close");
+    } else if (sel?.kind !== next.kind || sel.id !== next.id) play("research-open");
+    setSel(next);
+  };
   const pick = (id: string) => {
     if (!lay.nodes.has(id) && all.get(id)?.group === "completed") setShowCrafted(true);
-    setSel({ kind: "item", id });
+    select({ kind: "item", id });
     setTimeout(() => scrollTo(id), 60);
   };
   const refreshGame = () => {
@@ -776,9 +782,6 @@ export function TechTree() {
               <Check className="size-3.5" />
               {showCrafted ? "Hide crafted" : `Show crafted${done ? ` (${done})` : ""}`}
             </button>
-            <button type="button" className={cn("wb-mode", `wb-mode--${t.tc.state}`)} onClick={() => setTc(true)}>
-              Tool Cupboard
-            </button>
             <span className="wb-rt__zoom">
               <button type="button" onClick={() => setZoomClamped(zoom - 0.15)} aria-label="Zoom out">
                 <Minus className="size-3.5" />
@@ -802,8 +805,8 @@ export function TechTree() {
           <div
             ref={scroller}
             className="wb-rt__canvas"
-            onClick={() => {
-              if (!drag.current?.moved) setSel(null);
+            onClick={(e) => {
+              if (!drag.current?.moved && !(e.target as HTMLElement).closest(".wb-cup")) select(null);
             }}
             onPointerDown={(e) => {
               if (e.pointerType !== "mouse" || (e.target as HTMLElement).closest("button,a")) return;
@@ -878,26 +881,31 @@ export function TechTree() {
                   })}
                 </svg>
 
-                <button
-                  type="button"
+                <div
                   className={cn("wb-rt-root", sel?.kind === "root" && "wb-colhd--sel")}
                   style={{ width: lay.root.w, height: lay.root.h }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSel({ kind: "root", id: pid });
-                  }}
                 >
-                  <span className="wb-rt-root__icon">
-                    <RustLogo logo={t.blueprint.logo} size={56} />
-                  </span>
-                  <span className="wb-colhd__body">
-                    <small>{done === total && total ? "Blueprint learned" : "Blueprint"}</small>
-                    <span className="wb-colhd__name">{t.blueprint.name}</span>
-                    <span className="wb-colhd__bar">
-                      <i style={{ width: `${pct}%` }} />
+                  <button
+                    type="button"
+                    className="wb-rt-root__main"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      select({ kind: "root", id: pid });
+                    }}
+                  >
+                    <span className="wb-rt-root__icon">
+                      <RustLogo logo={t.blueprint.logo} size={56} />
                     </span>
-                  </span>
-                </button>
+                    <span className="wb-colhd__body">
+                      <small>{done === total && total ? "Blueprint learned" : "Blueprint"}</small>
+                      <span className="wb-colhd__name">{t.blueprint.name}</span>
+                      <span className="wb-colhd__bar">
+                        <i style={{ width: `${pct}%` }} />
+                      </span>
+                    </span>
+                  </button>
+                  {bpHome && <CupboardStrip bp={bpHome} />}
+                </div>
 
                 <div className="wb-rt__cols" style={{ top: lay.headerY }}>
                   {lay.cols.map((c) => (
@@ -906,7 +914,7 @@ export function TechTree() {
                       c={c}
                       sel={sel?.kind === "col" && sel.id === c.key}
                       dim={!!lit}
-                      onSelect={() => setSel({ kind: "col", id: c.key })}
+                      onSelect={() => select({ kind: "col", id: c.key })}
                     />
                   ))}
                 </div>
@@ -919,7 +927,7 @@ export function TechTree() {
                       tags={tags}
                       sel={sel?.kind === "item" && sel.id === p.id}
                       dim={(!!lit && !lit.has(p.id)) || (!!colLit && p.col !== colLit)}
-                      onSelect={() => setSel({ kind: "item", id: p.id })}
+                      onSelect={() => select({ kind: "item", id: p.id })}
                       onLinkStart={(e) => startLink(p.id, e)}
                       linkTarget={link?.over === p.id}
                     />
@@ -959,7 +967,7 @@ export function TechTree() {
               ident={ident}
               stateIds={t.state_ids ?? {}}
               onPick={pick}
-              onClose={() => setSel(null)}
+              onClose={() => select(null)}
               onState={(id, g) => void onState(id, g)}
               onLink={(a, b, add) => void onLink(a, b, add)}
             />
@@ -973,7 +981,7 @@ export function TechTree() {
               done={selCol.done}
               total={selCol.total}
               onPick={pick}
-              onClose={() => setSel(null)}
+              onClose={() => select(null)}
               links={
                 cols.mode === "kit" && selCol.key !== NO_COL ? (
                   <Link className="wb-btn wb-btn--ghost" to={`/${slug}/projects/${pid}/modules/${selCol.key}`}>
@@ -992,12 +1000,9 @@ export function TechTree() {
               done={done}
               total={total}
               onPick={pick}
-              onClose={() => setSel(null)}
+              onClose={() => select(null)}
               links={
                 <>
-                  <button type="button" className="wb-btn wb-btn--ghost" onClick={() => setTc(true)}>
-                    Tool Cupboard
-                  </button>
                   <Link className="wb-btn wb-btn--ghost" to={`/${slug}/projects/${pid}/issues/`}>
                     List view
                   </Link>
@@ -1007,7 +1012,6 @@ export function TechTree() {
           )}
         </div>
       </div>
-      {tc && bpHome && <ToolCupboard bp={bpHome} onClose={() => setTc(false)} />}
     </WbPage>
   );
 }

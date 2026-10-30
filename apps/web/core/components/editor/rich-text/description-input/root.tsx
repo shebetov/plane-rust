@@ -244,7 +244,8 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
           dragDropEnabled
           onChange={(description_json, description_html, options) => {
             if (description_html === lastSavedContent.current) return;
-            setIsSubmitting("submitting");
+            // Workbench: the editor's own format migration saves quietly, without an unsaved-changes state
+            if (!options?.isMigrationUpdate) setIsSubmitting("submitting");
             onChange(description_html);
             setValue("isMigrationUpdate", !!options?.isMigrationUpdate);
             setValue("description_json", description_json);
@@ -274,7 +275,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
               return asset_id;
             } catch (error) {
               console.log("Error in uploading asset:", error);
-              throw new Error("Asset upload failed. Please try again later.");
+              throw new Error("Asset upload failed. Please try again later.", { cause: error });
             }
           }}
           duplicateFile={async (assetId: string) => {

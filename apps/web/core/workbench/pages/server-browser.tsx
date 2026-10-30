@@ -15,6 +15,7 @@ import { leftText } from "../lib/wipe";
 import { play } from "../sound/engine";
 import { pushNotice } from "../components/notices";
 import { RustItem, RustLogo } from "../components/rust-icon";
+import { useNow } from "../components/top-bar";
 import { WbPage, ago } from "./shell";
 
 type TFilter = "active" | "learned" | "empty" | "all";
@@ -38,11 +39,13 @@ function kindOf(b: THomeBlueprint): TFilter {
   return "active";
 }
 
-export function ToolCupboard({ bp, onClose }: { bp: THomeBlueprint; onClose: () => void }) {
+const UPKEEP_COST = 50;
+const PROTECT_MS = 7 * 86_400_000;
+
+/** Paying upkeep: 50 scrap for 2 more days of protection. */
+function usePayUpkeep(bp: THomeBlueprint, onPaid?: () => void) {
   const { data: state } = useWbState();
   const [busy, setBusy] = useState(false);
-  const until = bp.tc.until ? new Date(bp.tc.until) : null;
-  const left = until ? until.getTime() - Date.now() : 0;
   const balance = state?.scrap.balance ?? 0;
   const pay = async () => {
     setBusy(true);
@@ -50,7 +53,7 @@ export function ToolCupboard({ bp, onClose }: { bp: THomeBlueprint; onClose: () 
       await wb.post("buy", { offer: "upkeep", target: bp.id });
       pushNotice({ kind: "bought", title: "Upkeep paid", name: `${bp.name} · +2 days`, item: "cupboard.tool" });
       await Promise.all([mutate("wb:home"), mutate("wb:state")]);
-      onClose();
+      onPaid?.();
     } catch (e) {
       play("close");
       pushNotice({ kind: "scrapped", title: "Can't pay upkeep", name: (e as Error).message, item: "scrap" });
@@ -58,6 +61,66 @@ export function ToolCupboard({ bp, onClose }: { bp: THomeBlueprint; onClose: () 
       setBusy(false);
     }
   };
+  const payable = bp.tc.state === "protected" || bp.tc.state === "due" || bp.tc.state === "decaying";
+  return { pay, busy, balance, payable, canPay: payable && !busy && balance >= UPKEEP_COST };
+}
+
+/** The Tool Cupboard built into a Blueprint block: state, time left, and paying upkeep in place. */
+export function CupboardStrip({ bp }: { bp: THomeBlueprint }) {
+  const now = useNow(60_000);
+  const { pay, busy, balance, payable, canPay } = usePayUpkeep(bp);
+  const until = bp.tc.until ? new Date(bp.tc.until).getTime() : null;
+  const left = until && now ? Math.max(0, until - now.getTime()) : 0;
+  const state = bp.tc.state;
+  const label =
+    state === "protected" || state === "due"
+      ? `${MODE[state]} · ${leftText(left).toLowerCase()}`
+      : state === "decaying"
+        ? "Decaying"
+        : MODE[state];
+  return (
+    <span className={cn("wb-cup", `wb-cup--${state}`)}>
+      <span className="wb-cup__icon">
+        <RustItem item="cupboard.tool" size={46} />
+      </span>
+      <span className="wb-cup__body">
+        <small>Tool Cupboard</small>
+        <b>{label}</b>
+        {payable && (
+          <span className="wb-cup__bar" title="Protection left (of 7 days)">
+            <i style={{ width: `${Math.min(100, (left / PROTECT_MS) * 100)}%` }} />
+          </span>
+        )}
+      </span>
+      {payable && (
+        <button
+          type="button"
+          className="wb-cup__pay"
+          disabled={!canPay}
+          onClick={(e) => {
+            e.stopPropagation();
+            void pay();
+          }}
+          title={
+            balance < UPKEEP_COST
+              ? `Not enough scrap (${balance}/${UPKEEP_COST})`
+              : `Pay upkeep: ${UPKEEP_COST} scrap for 2 more days`
+          }
+          data-wb-silent
+        >
+          <RustItem item="scrap" size={20} />
+          {busy ? "…" : UPKEEP_COST}
+          <small>+2d</small>
+        </button>
+      )}
+    </span>
+  );
+}
+
+export function ToolCupboard({ bp, onClose }: { bp: THomeBlueprint; onClose: () => void }) {
+  const { pay, busy, balance } = usePayUpkeep(bp, onClose);
+  const until = bp.tc.until ? new Date(bp.tc.until) : null;
+  const left = until ? until.getTime() - Date.now() : 0;
   const ok = bp.tc.state === "protected" || bp.tc.state === "due";
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
@@ -112,7 +175,7 @@ export function ToolCupboard({ bp, onClose }: { bp: THomeBlueprint; onClose: () 
             <button
               type="button"
               className="wb-btn wb-btn--green"
-              disabled={busy || balance < 50}
+              disabled={busy || balance < UPKEEP_COST}
               onClick={pay}
               data-wb-silent
             >

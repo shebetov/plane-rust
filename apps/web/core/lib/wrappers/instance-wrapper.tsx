@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { WbLoadingScreen } from "@/workbench/components/loading-screen";
 import { InstanceNotReady, MaintenanceView } from "@/components/instance";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
@@ -29,12 +29,7 @@ const InstanceWrapper = observer(function InstanceWrapper(props: TInstanceWrappe
   );
 
   // loading state
-  if ((isLoading || isInstanceSWRLoading) && !instance)
-    return (
-      <div className="relative flex h-screen w-full items-center justify-center">
-        <LogoSpinner />
-      </div>
-    );
+  if ((isLoading || isInstanceSWRLoading) && !instance) return <WbLoadingScreen />;
 
   if (instanceSWRError) return <MaintenanceView />;
 

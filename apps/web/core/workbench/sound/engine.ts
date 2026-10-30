@@ -7,10 +7,29 @@
  * Browsers only start audio from a user gesture, so the first tap/keypress unlocks it.
  */
 
-export type TSoundSlot = "click" | "open" | "close" | "move" | "refresh" | "link";
+export type TSoundSlot =
+  | "click"
+  | "open"
+  | "close"
+  | "box"
+  | "research-open"
+  | "research-close"
+  | "move"
+  | "refresh"
+  | "link";
 
 const BASE = "/workbench/theme/sounds/";
-const SLOTS: TSoundSlot[] = ["click", "open", "close", "move", "refresh", "link"];
+const SLOTS: TSoundSlot[] = [
+  "click",
+  "open",
+  "close",
+  "box",
+  "research-open",
+  "research-close",
+  "move",
+  "refresh",
+  "link",
+];
 const FX_VOLUME = 0.55;
 const MUSIC_VOLUME = 0.22;
 const FADE_S = 2.5;
@@ -84,7 +103,7 @@ function load(slot: TSoundSlot): Promise<AudioBuffer | null> {
 
 export function play(slot: TSoundSlot) {
   if (!state.fx || !audio()) return;
-  // two sounds in the same instant (e.g. a click that also opens a menu): keep the first
+  // two sounds in the same instant (a tap that also opens something): the click gives way
   const now = performance.now();
   if (slot === "click" && now - lastPlay < 60) return;
   lastPlay = now;

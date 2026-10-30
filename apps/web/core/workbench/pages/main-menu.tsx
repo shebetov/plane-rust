@@ -47,6 +47,8 @@ export function MainMenu() {
         <div className="wb-menu__bg" aria-hidden>
           <i className="wb-menu__bg1" />
           <i className="wb-menu__bg2" />
+          <span className="wb-menu__fog" />
+          <span className="wb-menu__dust" />
         </div>
         {error && (
           <div className="wb-menu__err">The Workbench server is offline. Your Items are fine: use the sidebar.</div>

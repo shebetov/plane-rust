@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { useSearchParams, usePathname } from "next/navigation";
 import useSWR from "swr";
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { WbLoadingScreen } from "@/workbench/components/loading-screen";
 // helpers
 import { EPageTypes } from "@/helpers/authentication.helper";
 // hooks
@@ -78,12 +78,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     return redirectionRoute;
   };
 
-  if ((isUserSWRLoading || isUserLoading || workspacesLoader) && !currentUser?.id)
-    return (
-      <div className="relative flex h-screen w-full items-center justify-center">
-        <LogoSpinner />
-      </div>
-    );
+  if ((isUserSWRLoading || isUserLoading || workspacesLoader) && !currentUser?.id) return <WbLoadingScreen />;
 
   if (pageType === EPageTypes.PUBLIC) return <>{children}</>;
 

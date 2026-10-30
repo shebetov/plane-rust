@@ -35,16 +35,18 @@ const useReloadConfirmations = (isActive = true, message?: string, defaultShowAl
       const anchorElement = eventTarget.closest("a") as HTMLAnchorElement;
       const isAnchorTargetBlank = anchorElement.getAttribute("target") === "_blank";
       if (isAnchorTargetBlank) return;
+      // Workbench: in-app links keep the page alive, so a save in flight finishes; only links that leave the site ask
+      if (anchorElement.origin === window.location.origin) return;
       // show confirm dialog
       const isLeaving = confirm(alertMessage);
       if (isLeaving) {
-        onLeave && onLeave();
+        onLeave?.();
       } else {
         event.preventDefault();
         event.stopPropagation();
       }
     },
-    [isActive, showAlert]
+    [isActive, showAlert, alertMessage, onLeave]
   );
 
   useEffect(() => {
