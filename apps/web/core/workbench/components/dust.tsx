@@ -16,7 +16,7 @@ function spawn(w: number, h: number, anywhere: boolean): TMote {
     x: Math.random() * w,
     y: anywhere ? Math.random() * h : h + 20,
     z,
-    r: 1 + z * 6.5,
+    r: 0.5 + z * 3.25,
     vx: 6 + z * 34 + Math.random() * 8,
     vy: -(5 + z * 22 + Math.random() * 6),
     ph: Math.random() * Math.PI * 2,
