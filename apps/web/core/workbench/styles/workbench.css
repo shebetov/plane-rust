@@ -1764,7 +1764,7 @@ html {
 }
 /* scaled down: the whole screen at half size */
 .wb-rt-root .wb-tc {
-  zoom: 0.5;
+  zoom: 0.55;
   padding: 14px 16px 16px;
   cursor: default;
   box-shadow: inset 0 1px 0 rgba(227, 217, 204, 0.1);
@@ -1773,6 +1773,27 @@ html {
 .wb-rt-root .wb-tc__hd small {
   color: var(--wb-dim);
   letter-spacing: 0.1em;
+  font-size: 17px;
+}
+/* bigger text, so it stays readable at this scale */
+.wb-rt-root .wb-tc__hd b {
+  font-size: 28px;
+}
+.wb-rt-root .wb-tc__info {
+  font-size: 21px;
+  line-height: 1.35;
+}
+.wb-rt-root .wb-tc__k,
+.wb-rt-root .wb-tc__state {
+  font-size: 23px;
+}
+.wb-rt-root .wb-tc__res i,
+.wb-rt-root .wb-tc__slot i {
+  font-size: 17px;
+}
+.wb-rt-root .wb-tc__btns .wb-btn {
+  font-size: 21px;
+  padding: 12px 22px;
 }
 .wb-colhd__body {
   display: flex;
