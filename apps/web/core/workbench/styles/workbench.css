@@ -1783,6 +1783,13 @@ html {
 .wb-rt-root__main:hover {
   background: #23221c;
 }
+.wb-rt-root--stacked {
+  flex-direction: column;
+}
+.wb-rt-root--stacked .wb-cup {
+  width: auto;
+  box-shadow: inset 0 1px 0 rgba(227, 217, 204, 0.1);
+}
 .wb-cup {
   --cup: var(--wb-next);
   display: flex;

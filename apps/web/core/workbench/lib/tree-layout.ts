@@ -55,6 +55,7 @@ export type TLayout = {
   width: number;
   height: number;
   root: { x: number; y: number; w: number; h: number };
+  busY: number;
   headerY: number;
 };
 
@@ -65,12 +66,10 @@ export const HEADER_H = 110;
 const IND = 26;
 const GAP_Y = 12;
 const COL_GAP = 64;
-const ROOT_H = 92;
-/** the Blueprint block: its name on the left, the Tool Cupboard on the right */
+/** the Blueprint block: its name, and the Tool Cupboard beside it (under it on phones) */
 const ROOT_W = 600;
-const BUS_Y = ROOT_H + 30;
-const HEADER_Y = BUS_Y + 30;
-const ITEMS_Y = HEADER_Y + HEADER_H + 26;
+const ROOT_W_STACKED = 340;
+const ROOT_H = 92;
 const MAX_INDENT = 4;
 
 const CLOSED = new Set(["completed", "cancelled"]);
@@ -80,8 +79,14 @@ export function layoutTree(
   all: TNodeIn[],
   colsIn: TColIn[],
   columnOf: (n: TNodeIn) => string,
-  showCrafted: boolean
+  showCrafted: boolean,
+  stacked = false
 ): TLayout {
+  const rootW = stacked ? ROOT_W_STACKED : ROOT_W;
+  const rootH = stacked ? ROOT_H * 2 : ROOT_H;
+  const BUS_Y = rootH + 30;
+  const HEADER_Y = BUS_Y + 30;
+  const ITEMS_Y = HEADER_Y + HEADER_H + 26;
   const byId = new Map(all.map((n) => [n.id, n]));
   const visible = all.filter((n) => n.group !== "cancelled" && (showCrafted || n.group !== "completed"));
   const vis = new Set(visible.map((n) => n.id));
@@ -308,14 +313,13 @@ export function layoutTree(
     cols,
     nodes,
     edges,
-    width: Math.max(x - COL_GAP + 40, ROOT_W + 40),
+    width: Math.max(x - COL_GAP + 40, rootW + 40),
     height: bottom + 40,
-    root: { x: 0, y: 0, w: ROOT_W, h: ROOT_H },
+    root: { x: 0, y: 0, w: rootW, h: rootH },
+    busY: BUS_Y,
     headerY: HEADER_Y,
   };
 }
-
-export const BUS_TOP = BUS_Y;
 
 /** Everything on the way to an Item (requirements, Components) and what it leads to. */
 export function pathOf(id: string, all: Map<string, TNodeIn>): Set<string> {

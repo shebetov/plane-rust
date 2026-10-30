@@ -23,7 +23,7 @@ import {
   usePlaneItems,
 } from "../lib/plane";
 import type { TCol, TColIn, TLayout, TNodeIn, TPlaced } from "../lib/tree-layout";
-import { BUS_TOP, HEADER_H, HEADER_W, NODE_H, NODE_W, layoutTree, pathOf } from "../lib/tree-layout";
+import { HEADER_H, HEADER_W, NODE_H, NODE_W, layoutTree, pathOf } from "../lib/tree-layout";
 import { play } from "../sound/engine";
 import { RustItem, RustLogo } from "../components/rust-icon";
 import { CupboardStrip } from "./server-browser";
@@ -593,6 +593,7 @@ export function TechTree() {
   const [hover, setHover] = useState<string | null>(null);
   const [showCrafted, setShowCrafted] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [narrow, setNarrow] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const [link, setLink] = useState<{ from: string; x: number; y: number; over: string | null } | null>(null);
@@ -606,7 +607,10 @@ export function TechTree() {
 
   useEffect(() => {
     setShowCrafted(readPref("wb:tt:crafted") === "1");
-    if (window.innerWidth < 768) setZoom(0.8);
+    if (window.innerWidth < 768) {
+      setZoom(0.8);
+      setNarrow(true);
+    }
   }, []);
   useEffect(() => setSel(null), [pid]);
 
@@ -615,8 +619,8 @@ export function TechTree() {
   const all = useMemo(() => new Map(nodesIn.map((n) => [n.id, n])), [nodesIn]);
   const cols = useMemo(() => columnsFor(t, nodesIn), [t, nodesIn]);
   const lay: TLayout | null = useMemo(
-    () => (t && items ? layoutTree(nodesIn, cols.cols, cols.of, showCrafted) : null),
-    [t, items, nodesIn, cols, showCrafted]
+    () => (t && items ? layoutTree(nodesIn, cols.cols, cols.of, showCrafted, narrow) : null),
+    [t, items, nodesIn, cols, showCrafted, narrow]
   );
 
   const focusId = hover ?? (sel?.kind === "item" ? sel.id : null);
@@ -755,8 +759,8 @@ export function TechTree() {
   const rootX = 40;
   const lastX = lay.cols.length ? lay.cols[lay.cols.length - 1].x + HEADER_W / 2 : rootX;
   const busD =
-    `M${rootX} ${lay.root.h}V${BUS_TOP}H${Math.max(lastX, rootX)}` +
-    lay.cols.map((c) => `M${c.x + HEADER_W / 2} ${BUS_TOP}V${lay.headerY}`).join("");
+    `M${rootX} ${lay.root.h}V${lay.busY}H${Math.max(lastX, rootX)}` +
+    lay.cols.map((c) => `M${c.x + HEADER_W / 2} ${lay.busY}V${lay.headerY}`).join("");
 
   return (
     <WbPage title={t.blueprint.name}>
@@ -882,7 +886,7 @@ export function TechTree() {
                 </svg>
 
                 <div
-                  className={cn("wb-rt-root", sel?.kind === "root" && "wb-colhd--sel")}
+                  className={cn("wb-rt-root", narrow && "wb-rt-root--stacked", sel?.kind === "root" && "wb-colhd--sel")}
                   style={{ width: lay.root.w, height: lay.root.h }}
                 >
                   <button
