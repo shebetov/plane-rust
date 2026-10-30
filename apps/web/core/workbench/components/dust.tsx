@@ -7,8 +7,8 @@ import { useEffect, useRef } from "react";
 
 type TMote = { x: number; y: number; z: number; r: number; vx: number; vy: number; ph: number; tw: number };
 
-const COUNT_PER_MPX = 90; // motes per million screen pixels
-const MAX = 160;
+const COUNT_PER_MPX = 190; // motes per million screen pixels
+const MAX = 300;
 
 function spawn(w: number, h: number, anywhere: boolean): TMote {
   const z = Math.random() ** 1.6; // mostly far, a few close to the camera
@@ -16,7 +16,7 @@ function spawn(w: number, h: number, anywhere: boolean): TMote {
     x: Math.random() * w,
     y: anywhere ? Math.random() * h : h + 20,
     z,
-    r: 0.7 + z * 4.8,
+    r: 1 + z * 6.5,
     vx: 6 + z * 34 + Math.random() * 8,
     vy: -(5 + z * 22 + Math.random() * 6),
     ph: Math.random() * Math.PI * 2,
@@ -71,8 +71,8 @@ export function DustCanvas({ className }: { className?: string }) {
           continue;
         }
         const twinkle = 0.55 + 0.45 * Math.sin(t * m.tw * 2 + m.ph);
-        const a = (0.25 + m.z * 0.55) * twinkle;
-        const r = m.r * (m.z > 0.6 ? 2.2 : 1.4); // close motes are out of focus: a wider, softer glow
+        const a = Math.min(1, (0.45 + m.z * 0.6) * twinkle);
+        const r = m.r * (m.z > 0.6 ? 2.6 : 1.6); // close motes are out of focus: a wider, softer glow
         const g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r);
         g.addColorStop(0, `rgba(255, 238, 205, ${a})`);
         g.addColorStop(m.z > 0.6 ? 0.5 : 0.35, `rgba(255, 220, 170, ${a * 0.45})`);
