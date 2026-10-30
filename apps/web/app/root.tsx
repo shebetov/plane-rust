@@ -40,10 +40,10 @@ const FAV = "/workbench/theme/favicon";
 export const links: LinksFunction = () => [
   { rel: "icon", type: "image/png", sizes: "32x32", href: `${FAV}/icon-32.png` },
   { rel: "icon", type: "image/png", sizes: "16x16", href: `${FAV}/icon-16.png` },
-  { rel: "manifest", href: `${FAV}/site.webmanifest` },
-  { rel: "apple-touch-icon", href: `${FAV}/icon-180.png` },
-  { rel: "apple-touch-icon", sizes: "180x180", href: `${FAV}/icon-180.png` },
-  { rel: "apple-touch-icon", sizes: "512x512", href: `${FAV}/icon-512.png` },
+  { rel: "manifest", href: `${FAV}/app.webmanifest` },
+  { rel: "apple-touch-icon", href: `${FAV}/apple-180.png` },
+  { rel: "apple-touch-icon", sizes: "180x180", href: `${FAV}/apple-180.png` },
+  { rel: "apple-touch-icon", sizes: "512x512", href: `${FAV}/apple-512.png` },
   { rel: "stylesheet", href: globalStyles },
   {
     rel: "preload",
