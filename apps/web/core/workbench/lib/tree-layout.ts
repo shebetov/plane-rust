@@ -66,10 +66,9 @@ export const HEADER_H = 110;
 const IND = 26;
 const GAP_Y = 12;
 const COL_GAP = 64;
-/** the Blueprint block: its name, and the Tool Cupboard beside it (under it on phones) */
-const ROOT_W = 600;
-const ROOT_W_STACKED = 340;
-const ROOT_H = 92;
+/** the Blueprint block (its name with the Tool Cupboard under it); the page passes its measured height */
+export const ROOT_W = 600;
+export const ROOT_W_NARROW = 340;
 const MAX_INDENT = 4;
 
 const CLOSED = new Set(["completed", "cancelled"]);
@@ -80,10 +79,9 @@ export function layoutTree(
   colsIn: TColIn[],
   columnOf: (n: TNodeIn) => string,
   showCrafted: boolean,
-  stacked = false
+  root: { w: number; h: number }
 ): TLayout {
-  const rootW = stacked ? ROOT_W_STACKED : ROOT_W;
-  const rootH = stacked ? ROOT_H * 2 : ROOT_H;
+  const { w: rootW, h: rootH } = root;
   const BUS_Y = rootH + 30;
   const HEADER_Y = BUS_Y + 30;
   const ITEMS_Y = HEADER_Y + HEADER_H + 26;

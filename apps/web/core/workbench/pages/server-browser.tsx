@@ -40,7 +40,6 @@ function kindOf(b: THomeBlueprint): TFilter {
 }
 
 const UPKEEP_COST = 50;
-const PROTECT_MS = 7 * 86_400_000;
 
 /** Paying upkeep: 50 scrap for 2 more days of protection. */
 function usePayUpkeep(bp: THomeBlueprint, onPaid?: () => void) {
@@ -65,63 +64,86 @@ function usePayUpkeep(bp: THomeBlueprint, onPaid?: () => void) {
   return { pay, busy, balance, payable, canPay: payable && !busy && balance >= UPKEEP_COST };
 }
 
-/** The Tool Cupboard built into a Blueprint block: state, time left, and paying upkeep in place. */
-export function CupboardStrip({ bp }: { bp: THomeBlueprint }) {
+/** The Tool Cupboard upkeep screen: used in its own window and inside the Blueprint block on the tree. */
+export function ToolCupboardPanel({
+  bp,
+  onClose,
+  onPaid,
+}: {
+  bp: THomeBlueprint;
+  onClose?: () => void;
+  onPaid?: () => void;
+}) {
   const now = useNow(60_000);
-  const { pay, busy, balance, payable, canPay } = usePayUpkeep(bp);
+  const { pay, busy, balance, payable, canPay } = usePayUpkeep(bp, onPaid);
   const until = bp.tc.until ? new Date(bp.tc.until).getTime() : null;
-  const left = until && now ? Math.max(0, until - now.getTime()) : 0;
-  const state = bp.tc.state;
-  const label =
-    state === "protected" || state === "due"
-      ? `${MODE[state]} · ${leftText(left).toLowerCase()}`
-      : state === "decaying"
-        ? "Decaying"
-        : MODE[state];
+  const left = until && now ? until - now.getTime() : 0;
+  const ok = bp.tc.state === "protected" || bp.tc.state === "due";
   return (
-    <span className={cn("wb-cup", `wb-cup--${state}`)}>
-      <span className="wb-cup__icon">
-        <RustItem item="cupboard.tool" size={46} />
-      </span>
-      <span className="wb-cup__body">
-        <small>Tool Cupboard</small>
-        <b>{label}</b>
-        {payable && (
-          <span className="wb-cup__bar" title="Protection left (of 7 days)">
-            <i style={{ width: `${Math.min(100, (left / PROTECT_MS) * 100)}%` }} />
-          </span>
-        )}
-      </span>
-      {payable && (
-        <button
-          type="button"
-          className="wb-cup__pay"
-          disabled={!canPay}
-          onClick={(e) => {
-            e.stopPropagation();
-            void pay();
-          }}
-          title={
-            balance < UPKEEP_COST
-              ? `Not enough scrap (${balance}/${UPKEEP_COST})`
-              : `Pay upkeep: ${UPKEEP_COST} scrap for 2 more days`
-          }
-          data-wb-silent
-        >
-          <RustItem item="scrap" size={20} />
-          {busy ? "…" : UPKEEP_COST}
-          <small>+2d</small>
-        </button>
+    <div className={cn("wb-tc", `wb-tc--${bp.tc.state}`)}>
+      <div className="wb-tc__hd">
+        <RustItem item="cupboard.tool" size={40} />
+        <span>
+          <small>Tool Cupboard</small>
+          <b>{bp.name}</b>
+        </span>
+      </div>
+      <div className="wb-tc__info">
+        Craft something in this Blueprint to keep it protected for 7 days. Left unattended it decays. You can also pay
+        upkeep with scrap.
+      </div>
+      <div className="wb-tc__cost">
+        <span className="wb-tc__k">Cost per 2 days</span>
+        <span className="wb-tc__res">
+          <RustItem item="scrap" size={34} />
+          <i>x{UPKEEP_COST}</i>
+        </span>
+        <span className={cn("wb-tc__state", ok ? "wb-tc__state--ok" : "wb-tc__state--bad")}>
+          {ok
+            ? `✓ Your base will not decay for ${leftText(Math.max(0, left)).toLowerCase()}.`
+            : bp.tc.state === "decaying"
+              ? "✕ Your base is decaying."
+              : "No upkeep needed."}
+        </span>
+      </div>
+      <div className="wb-tc__slots">
+        <span className="wb-tc__slot">
+          <RustItem item="scrap" size={36} />
+          <i>x{balance.toLocaleString()}</i>
+        </span>
+        {Array.from({ length: 5 }, (_, i) => (
+          <span key={i} className="wb-tc__slot wb-tc__slot--empty" />
+        ))}
+      </div>
+      {(onClose || payable) && (
+        <div className="wb-tc__btns">
+          {onClose && (
+            <button type="button" className="wb-btn wb-btn--ghost" onClick={onClose}>
+              Close
+            </button>
+          )}
+          {payable && (
+            <button
+              type="button"
+              className="wb-btn wb-btn--green"
+              disabled={!canPay}
+              onClick={(e) => {
+                e.stopPropagation();
+                void pay();
+              }}
+              title={balance < UPKEEP_COST ? `Not enough scrap (${balance}/${UPKEEP_COST})` : undefined}
+              data-wb-silent
+            >
+              {busy ? "Paying…" : `Pay upkeep · ${UPKEEP_COST}`}
+            </button>
+          )}
+        </div>
       )}
-    </span>
+    </div>
   );
 }
 
 export function ToolCupboard({ bp, onClose }: { bp: THomeBlueprint; onClose: () => void }) {
-  const { pay, busy, balance } = usePayUpkeep(bp, onClose);
-  const until = bp.tc.until ? new Date(bp.tc.until) : null;
-  const left = until ? until.getTime() - Date.now() : 0;
-  const ok = bp.tc.state === "protected" || bp.tc.state === "due";
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -132,57 +154,8 @@ export function ToolCupboard({ bp, onClose }: { bp: THomeBlueprint; onClose: () 
   return (
     <div className="wb-modal" role="dialog" aria-modal="true" aria-label="Tool Cupboard" data-wb-panel>
       <button type="button" className="wb-modal__bg" aria-label="Close" onClick={onClose} data-wb-silent />
-      <div className="wb-modal__card wb-tc">
-        <div className="wb-tc__hd">
-          <RustItem item="cupboard.tool" size={40} />
-          <span>
-            <small>Tool Cupboard</small>
-            <b>{bp.name}</b>
-          </span>
-        </div>
-        <div className="wb-tc__info">
-          Craft something in this Blueprint to keep it protected for 7 days. Left unattended it decays. You can also pay
-          upkeep with scrap.
-        </div>
-        <div className="wb-tc__cost">
-          <span className="wb-tc__k">Cost per 2 days</span>
-          <span className="wb-tc__res">
-            <RustItem item="scrap" size={34} />
-            <i>x50</i>
-          </span>
-          <span className={cn("wb-tc__state", ok ? "wb-tc__state--ok" : "wb-tc__state--bad")}>
-            {ok
-              ? `✓ Your base will not decay for ${leftText(left).toLowerCase()}.`
-              : bp.tc.state === "decaying"
-                ? "✕ Your base is decaying."
-                : "No upkeep needed."}
-          </span>
-        </div>
-        <div className="wb-tc__slots">
-          <span className="wb-tc__slot">
-            <RustItem item="scrap" size={36} />
-            <i>x{balance.toLocaleString()}</i>
-          </span>
-          {Array.from({ length: 5 }, (_, i) => (
-            <span key={i} className="wb-tc__slot wb-tc__slot--empty" />
-          ))}
-        </div>
-        <div className="wb-tc__btns">
-          <button type="button" className="wb-btn wb-btn--ghost" onClick={onClose}>
-            Close
-          </button>
-          {(bp.tc.state === "protected" || bp.tc.state === "due" || bp.tc.state === "decaying") && (
-            <button
-              type="button"
-              className="wb-btn wb-btn--green"
-              disabled={busy || balance < UPKEEP_COST}
-              onClick={pay}
-              data-wb-silent
-            >
-              Pay upkeep · 50
-            </button>
-          )}
-        </div>
+      <div className="wb-modal__card">
+        <ToolCupboardPanel bp={bp} onClose={onClose} onPaid={onClose} />
       </div>
     </div>
   );

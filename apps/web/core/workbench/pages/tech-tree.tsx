@@ -5,7 +5,7 @@
  * Selecting a block lights up its whole path and opens the research panel: details,
  * requirements, what it unlocks, and the buttons to start, craft and link Items.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Circle, Hammer, Link2, Lock, Minus, Plus, Search, X } from "lucide-react";
 import { Link } from "react-router";
 import { useParams } from "next/navigation";
@@ -23,10 +23,10 @@ import {
   usePlaneItems,
 } from "../lib/plane";
 import type { TCol, TColIn, TLayout, TNodeIn, TPlaced } from "../lib/tree-layout";
-import { HEADER_H, HEADER_W, NODE_H, NODE_W, layoutTree, pathOf } from "../lib/tree-layout";
+import { HEADER_H, HEADER_W, NODE_H, NODE_W, ROOT_W, ROOT_W_NARROW, layoutTree, pathOf } from "../lib/tree-layout";
 import { play } from "../sound/engine";
 import { RustItem, RustLogo } from "../components/rust-icon";
-import { CupboardStrip } from "./server-browser";
+import { ToolCupboardPanel } from "./server-browser";
 import { WbPage } from "./shell";
 
 const STATUS: Record<string, string> = {
@@ -594,6 +594,16 @@ export function TechTree() {
   const [showCrafted, setShowCrafted] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [narrow, setNarrow] = useState(false);
+  // the Blueprint block grows with the Tool Cupboard inside it; the tree hangs below its real height
+  const [rootH, setRootH] = useState(92);
+  const rootObs = useRef<ResizeObserver | null>(null);
+  const rootRef = useCallback((el: HTMLDivElement | null) => {
+    rootObs.current?.disconnect();
+    if (!el) return;
+    const ro = new ResizeObserver(() => setRootH(el.offsetHeight));
+    ro.observe(el);
+    rootObs.current = ro;
+  }, []);
   const scroller = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const [link, setLink] = useState<{ from: string; x: number; y: number; over: string | null } | null>(null);
@@ -619,8 +629,11 @@ export function TechTree() {
   const all = useMemo(() => new Map(nodesIn.map((n) => [n.id, n])), [nodesIn]);
   const cols = useMemo(() => columnsFor(t, nodesIn), [t, nodesIn]);
   const lay: TLayout | null = useMemo(
-    () => (t && items ? layoutTree(nodesIn, cols.cols, cols.of, showCrafted, narrow) : null),
-    [t, items, nodesIn, cols, showCrafted, narrow]
+    () =>
+      t && items
+        ? layoutTree(nodesIn, cols.cols, cols.of, showCrafted, { w: narrow ? ROOT_W_NARROW : ROOT_W, h: rootH })
+        : null,
+    [t, items, nodesIn, cols, showCrafted, narrow, rootH]
   );
 
   const focusId = hover ?? (sel?.kind === "item" ? sel.id : null);
@@ -810,7 +823,7 @@ export function TechTree() {
             ref={scroller}
             className="wb-rt__canvas"
             onClick={(e) => {
-              if (!drag.current?.moved && !(e.target as HTMLElement).closest(".wb-cup")) select(null);
+              if (!drag.current?.moved && !(e.target as HTMLElement).closest(".wb-tc")) select(null);
             }}
             onPointerDown={(e) => {
               if (e.pointerType !== "mouse" || (e.target as HTMLElement).closest("button,a")) return;
@@ -886,8 +899,9 @@ export function TechTree() {
                 </svg>
 
                 <div
-                  className={cn("wb-rt-root", narrow && "wb-rt-root--stacked", sel?.kind === "root" && "wb-colhd--sel")}
-                  style={{ width: lay.root.w, height: lay.root.h }}
+                  ref={rootRef}
+                  className={cn("wb-rt-root", sel?.kind === "root" && "wb-colhd--sel")}
+                  style={{ width: lay.root.w }}
                 >
                   <button
                     type="button"
@@ -908,7 +922,7 @@ export function TechTree() {
                       </span>
                     </span>
                   </button>
-                  {bpHome && <CupboardStrip bp={bpHome} />}
+                  {bpHome && <ToolCupboardPanel bp={bpHome} />}
                 </div>
 
                 <div className="wb-rt__cols" style={{ top: lay.headerY }}>

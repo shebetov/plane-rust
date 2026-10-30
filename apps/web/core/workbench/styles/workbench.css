@@ -1738,7 +1738,7 @@ html {
   height: 0;
 }
 .wb-colhd:hover,
-/* the Blueprint block: a select button (name, progress) and the Tool Cupboard beside it */
+/* the Blueprint block: a select button (name, progress) with the Tool Cupboard under it */
 .wb-rt-root {
   padding: 0;
   gap: 0;
@@ -1758,121 +1758,19 @@ html {
 .wb-rt-root__main:hover {
   background: #23221c;
 }
-.wb-rt-root--stacked {
+/* the Tool Cupboard under the Blueprint name: the same upkeep screen as its own window */
+.wb-rt-root {
   flex-direction: column;
 }
-.wb-rt-root--stacked .wb-cup {
-  width: auto;
+.wb-rt-root .wb-tc {
+  padding: 14px 16px 16px;
+  cursor: default;
   box-shadow: inset 0 1px 0 rgba(227, 217, 204, 0.1);
+  background: rgba(0, 0, 0, 0.18);
 }
-.wb-cup {
-  --cup: var(--wb-next);
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 10px;
-  width: 268px;
-  padding: 10px 12px 10px 10px;
-  background: rgba(0, 0, 0, 0.2);
-  box-shadow: inset 1px 0 0 rgba(227, 217, 204, 0.1);
-}
-.wb-cup--due {
-  --cup: var(--wb-amber);
-}
-.wb-cup--decaying {
-  --cup: #e0654f;
-  background:
-    repeating-linear-gradient(135deg, rgba(163, 60, 42, 0.16) 0 6px, transparent 6px 12px), rgba(40, 14, 10, 0.5);
-  animation: wb-cup-warn 1.6s ease-in-out infinite;
-}
-.wb-cup--learned {
-  --cup: #b9d3ee;
-}
-.wb-cup--empty {
-  --cup: var(--wb-dim);
-}
-@keyframes wb-cup-warn {
-  50% {
-    box-shadow:
-      inset 1px 0 0 rgba(227, 217, 204, 0.1),
-      inset 0 0 0 1px rgba(224, 101, 79, 0.6);
-  }
-}
-.wb-cup__icon {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  background: #11110f;
-  box-shadow: inset 0 0 0 1px rgba(227, 217, 204, 0.1);
-}
-.wb-cup__body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-.wb-rt-root .wb-cup__body small {
+.wb-rt-root .wb-tc__hd small {
   color: var(--wb-dim);
   letter-spacing: 0.1em;
-}
-.wb-cup__body b {
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.1;
-  text-transform: uppercase;
-  color: var(--cup);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.wb-cup__bar {
-  height: 5px;
-  background: #11110f;
-}
-.wb-cup__bar i {
-  display: block;
-  height: 100%;
-  background: var(--cup);
-  transition: width 0.4s;
-}
-.wb-cup__pay {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-  width: 52px;
-  height: 56px;
-  font-family: var(--wb-f-mono);
-  font-size: 13px;
-  font-weight: 700;
-  color: #c9e07a;
-  background: #4f5a2a;
-  transition:
-    background 0.1s,
-    opacity 0.1s;
-}
-.wb-cup__pay small {
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: rgba(201, 224, 122, 0.75);
-}
-.wb-cup__pay:hover:not(:disabled) {
-  background: #5d6b30;
-}
-.wb-cup__pay:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-@media (prefers-reduced-motion: reduce) {
-  .wb-cup--decaying {
-    animation: none;
-  }
 }
 .wb-colhd__body {
   display: flex;
