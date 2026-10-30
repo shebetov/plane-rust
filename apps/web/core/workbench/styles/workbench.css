@@ -2810,7 +2810,7 @@ html {
   background:
     radial-gradient(ellipse 120% 90% at 50% 45%, transparent 40%, rgba(0, 0, 0, 0.75)),
     linear-gradient(rgba(13, 12, 10, 0.2), rgba(13, 12, 10, 0.85)),
-    url("/workbench/theme/menu/loading.jpg") center / cover,
+    url("/workbench/theme/menu/boot.jpg") center / cover,
     radial-gradient(ellipse 80% 60% at 40% 40%, #3a3326, #0d0c0a);
   opacity: 0;
   animation:
