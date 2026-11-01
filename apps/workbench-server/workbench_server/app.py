@@ -275,7 +275,9 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
         w["crafted"], w["scrap"] = len(this_wipe), sum(r["scrap"] for r in this_wipe)
         seen = db.get("seen_wipes", [])
         report_due = w["index"] - 1 if w["index"] >= 1 and (w["index"] - 1) not in seen else None
-        return JSONResponse({"wipe": w, "blueprints": bps, "news": news, "report_due": report_due})
+        due = game.deadlines(world.all_items(), world.groups, world.projects, datetime.now().astimezone().date())
+        return JSONResponse({"wipe": w, "blueprints": bps, "news": news, "report_due": report_due,
+                             "deadlines": due})
 
     @authed
     async def wipe_report(request: Request):

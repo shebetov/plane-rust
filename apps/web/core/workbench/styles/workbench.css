@@ -1044,6 +1044,28 @@ html {
   padding: 12px;
   margin: 0;
 }
+/* deadlines: OVERDUE (red edge) over DUE SOON (amber edge) */
+.wb-due {
+  display: grid;
+  gap: 12px;
+}
+.wb-due__panel {
+  box-shadow: inset 3px 0 0 var(--wb-amber);
+}
+.wb-due__panel--late {
+  box-shadow: inset 3px 0 0 var(--wb-bad);
+}
+.wb-due__n {
+  margin-left: 6px;
+  padding: 0 6px;
+  font-family: var(--wb-f-mono);
+  color: #1a1712;
+  background: var(--wb-amber);
+}
+.wb-due__n--late {
+  color: #fff;
+  background: var(--wb-bad);
+}
 .wb-feed {
   list-style: none;
   margin: 0;

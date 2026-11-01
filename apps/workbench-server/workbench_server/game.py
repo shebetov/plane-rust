@@ -229,6 +229,35 @@ def _item_node(it: dict, groups: dict[str, str], now: datetime) -> dict:
 
 # ---------------------------------------------------------------- feeds
 
+SOON_DAYS = 7  # an Item due within a week shows on Home
+
+
+def deadlines(items: list[dict], groups_by_project: dict[str, dict[str, str]], projects: dict[str, dict],
+              today: date) -> list[dict]:
+    """Open Items past their target date or due within SOON_DAYS, soonest (most overdue) first."""
+    out = []
+    for it in items:
+        pid = it["project"]
+        if groups_by_project.get(pid, {}).get(it.get("state")) not in ("backlog", "unstarted", "started"):
+            continue
+        raw = it.get("target_date")
+        if not raw:
+            continue
+        try:
+            due = date.fromisoformat(raw[:10])
+        except ValueError:
+            continue
+        days = (due - today).days
+        if days > SOON_DAYS:
+            continue
+        p = projects.get(pid, {})
+        out.append({"id": it["id"], "name": it["name"], "project": pid, "project_name": p.get("name"),
+                    "identifier": p.get("identifier"), "seq": it.get("sequence_id"), "logo": p.get("logo_props"),
+                    "target": due.isoformat(), "days": days, "priority": it.get("priority"),
+                    "group": groups_by_project[pid][it["state"]]})
+    out.sort(key=lambda r: (r["days"], r["name"].lower()))
+    return out
+
 def crafted_since(items: list[dict], groups_by_project: dict[str, dict[str, str]], since: datetime,
                   projects: dict[str, dict]) -> list[dict]:
     """Items crafted after `since`, newest first, for the notices and the news feed."""

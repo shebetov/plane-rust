@@ -60,6 +60,23 @@ export type THome = {
     logo?: TLogo;
   }>;
   report_due: number | null;
+  /** open Items past their target date or due within a week, most overdue first */
+  deadlines?: THomeDeadline[];
+};
+
+export type THomeDeadline = {
+  id: string;
+  name: string;
+  project: string;
+  project_name?: string;
+  identifier?: string;
+  seq?: number;
+  logo?: TLogo;
+  target: string;
+  /** days until the target date: negative when late */
+  days: number;
+  priority?: string;
+  group: string;
 };
 
 export type TQueueItem = {

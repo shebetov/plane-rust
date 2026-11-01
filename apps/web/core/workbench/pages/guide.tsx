@@ -46,7 +46,7 @@ const LOOP: Array<[icon: string, text: string]> = [
 ];
 
 const SCREENS: Row[] = [
-  ["workbench2", "Home", "Quick join, news, wipe clock."],
+  ["workbench2", "Home", "Overdue, due soon, news, wipe clock."],
   ["blueprintbase", "Blueprints", "Straight into the research tree. Your last base first."],
   ["research.table", "Research tree", "Every base in the list beside it. Tap one to switch."],
   ["flare", "Wipe", "This wipe and the last one."],
@@ -54,7 +54,7 @@ const SCREENS: Row[] = [
 ];
 
 const TIPS = [
-  "Start the day on Home. Quick join a base.",
+  "Start the day on Home. Clear what is overdue first.",
   "Keep 1 to 3 Items Crafting. A full bench is a slow bench.",
   "Big Item? Split it into Components.",
   "Grade it honestly. Not everything is Armored.",

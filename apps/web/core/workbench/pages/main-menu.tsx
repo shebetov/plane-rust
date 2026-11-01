@@ -1,6 +1,6 @@
 /**
- * The main menu (replaces Plane's Home), after Rust's launcher: the launcher art, QUICK JOIN
- * with the active Blueprints, a news feed of crafted Items and the wipe headline.
+ * The main menu (replaces Plane's Home), after Rust's launcher: the launcher art, OVERDUE and
+ * DUE SOON (open Items past or near their target date), a news feed of crafted Items and the wipe headline.
  * After a wipe, the wipe report opens once.
  */
 import { useEffect, useMemo, useState } from "react";
@@ -8,6 +8,7 @@ import { Play } from "lucide-react";
 import { Link } from "react-router";
 import { useParams } from "next/navigation";
 import { cn } from "@plane/utils";
+import type { THomeDeadline } from "../lib/api";
 import { useWbHome, useWbState } from "../lib/api";
 import { currentWipe, leftText } from "../lib/wipe";
 import { RustItem, RustLogo } from "../components/rust-icon";
@@ -18,13 +19,46 @@ import { DEFAULT_SCENES, bannerSlug } from "../lib/scenes";
 import { WipeReportModal } from "./wipe-report";
 import { Panel, WbPage, ago } from "./shell";
 
-const TC_LABEL: Record<string, string> = {
-  protected: "Protected",
-  due: "Upkeep due",
-  decaying: "Decaying",
-  learned: "Learned",
-  empty: "Empty",
-};
+const SHOW = 6;
+
+function dueText(days: number) {
+  if (days < 0) return `${-days} day${days === -1 ? "" : "s"} late`;
+  if (days === 0) return "Due today";
+  if (days === 1) return "Due tomorrow";
+  return `Due in ${days} days`;
+}
+
+/** Items with a deadline that has passed or is close: one row each, opening the Item */
+function DuePanel({ title, rows, slug, late }: { title: string; rows: THomeDeadline[]; slug: string; late?: boolean }) {
+  return (
+    <Panel
+      title={
+        <>
+          {title} <b className={cn("wb-due__n", late && "wb-due__n--late")}>{rows.length}</b>
+        </>
+      }
+      className={cn("wb-due__panel", late && "wb-due__panel--late")}
+    >
+      {rows.slice(0, SHOW).map((d) => (
+        <Link key={d.id} to={`/${slug}/browse/${d.identifier}-${d.seq}/`} className="wb-join">
+          <RustLogo logo={d.logo} size={26} />
+          <span className="wb-join__body">
+            <b>{d.name}</b>
+            <span className="wb-tags">
+              <i className={d.days < 0 ? "wb-tag--decaying" : "wb-tag--due"}>{dueText(d.days)}</i>
+              {d.group === "started" && <i className="wb-tag--protected">Crafting</i>}
+              <i className="wb-tags__ago">{d.project_name}</i>
+            </span>
+          </span>
+          <span className="wb-join__go">
+            <Play className="size-3.5" />
+          </span>
+        </Link>
+      ))}
+      {rows.length > SHOW && <p className="wb-muted">+{rows.length - SHOW} more</p>}
+    </Panel>
+  );
+}
 
 export function MainMenu() {
   const { workspaceSlug } = useParams();
@@ -48,7 +82,9 @@ export function MainMenu() {
   const banner = state?.equipped.banner ? bannerSlug(state.equipped.banner) : "default";
   const scenes = useMemo(() => (banner === "default" ? DEFAULT_SCENES : [banner]), [banner]);
   const wipe = now ? currentWipe(now) : null;
-  const active = (data?.blueprints ?? []).filter((b) => b.open > 0);
+  const due = data?.deadlines ?? [];
+  const late = due.filter((d) => d.days < 0);
+  const soon = due.filter((d) => d.days >= 0);
 
   return (
     <WbPage active="home" title="Home" bare>
@@ -63,27 +99,16 @@ export function MainMenu() {
           <div className="wb-menu__err">The Workbench server is offline. Your Items are fine: use the sidebar.</div>
         )}
 
-        <Panel title="Quick join" className="wb-menu__join">
-          {active.slice(0, 5).map((b) => (
-            <Link key={b.id} to={`/${slug}/wb/tree/${b.id}`} className="wb-join">
-              <RustLogo logo={b.logo} size={26} />
-              <span className="wb-join__body">
-                <b>{b.name}</b>
-                <span className="wb-tags">
-                  <i className={`wb-tag--${b.tc.state}`}>{TC_LABEL[b.tc.state]}</i>
-                  <i>
-                    {b.done}/{b.total} crafted
-                  </i>
-                  <i className="wb-tags__ago">{ago(b.last_craft)}</i>
-                </span>
-              </span>
-              <span className="wb-join__go">
-                <Play className="size-3.5" />
-              </span>
-            </Link>
-          ))}
-          {data && !active.length && <p className="wb-muted">Nothing to craft. Add Items to a Blueprint.</p>}
-        </Panel>
+        {/* deadlines: what is late, then what is due within a week */}
+        <div className="wb-menu__join wb-due">
+          {late.length > 0 && <DuePanel title="Overdue" rows={late} slug={slug} late />}
+          {soon.length > 0 && <DuePanel title="Due soon" rows={soon} slug={slug} />}
+          {data && !late.length && !soon.length && (
+            <Panel title="Deadlines" className="wb-due__panel">
+              <p className="wb-muted">Nothing due this week. The server is quiet.</p>
+            </Panel>
+          )}
+        </div>
 
         <Panel title="News" className="wb-menu__news">
           <ul className="wb-feed">

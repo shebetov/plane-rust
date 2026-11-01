@@ -109,3 +109,20 @@ def test_tech_tree_lists_every_item_with_its_attributes():
     assert (a["kits"], a["labels"], a["target"], a["components"]) == (["k1"], ["t"], "2026-11-20", 1)
     assert (b["group"], b["parent"]) == ("cancelled", "a")
     assert t["labels"] == {"t": {"name": "T"}}
+
+
+def test_deadlines_lists_open_items_overdue_or_due_within_a_week():
+    from datetime import date
+    today = date(2026, 11, 1)
+    projects = {"p1": {"name": "Smoke-free", "identifier": "SF"}}
+    gbp = {"p1": GROUPS}
+    items = [
+        {"id": "late", "name": "Late", "project": "p1", "state": "s-u", "target_date": "2026-10-28"},
+        {"id": "soon", "name": "Soon", "project": "p1", "state": "s-s", "target_date": "2026-11-05"},
+        {"id": "far", "name": "Far", "project": "p1", "state": "s-u", "target_date": "2026-11-20"},
+        {"id": "done", "name": "Done", "project": "p1", "state": "s-c", "target_date": "2026-10-01"},
+        {"id": "none", "name": "None", "project": "p1", "state": "s-u"},
+    ]
+    rows = game.deadlines(items, gbp, projects, today)
+    assert [(r["id"], r["days"]) for r in rows] == [("late", -4), ("soon", 4)]
+    assert rows[0]["identifier"] == "SF" and rows[1]["group"] == "started"
