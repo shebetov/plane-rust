@@ -101,7 +101,6 @@ function ItemTile({
   onSelect,
   onLinkStart,
   linkTarget,
-  slot,
 }: {
   p: TItemTile;
   art: React.ReactNode;
@@ -110,7 +109,6 @@ function ItemTile({
   onSelect: () => void;
   onLinkStart: (e: React.PointerEvent) => void;
   linkTarget: boolean;
-  slot?: boolean;
 }) {
   const g = GRADE[p.priority] ?? GRADE.none;
   return (
@@ -120,7 +118,6 @@ function ItemTile({
         "wb-tl wb-tl--item",
         `wb-tl--${p.state}`,
         p.decay > 0 && `wb-tl--decay${p.decay}`,
-        slot && "wb-tl--slot",
         sel && "wb-tl--sel",
         dim && "wb-tl--dim",
         linkTarget && "wb-tl--target"
@@ -660,7 +657,6 @@ export function TechTree() {
   const [sel, setSel] = useState<TSel>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [showCrafted, setShowCrafted] = useState(false);
-  const [openCrates, setOpenCrates] = useState<Set<string>>(new Set());
   const [zoom, setZoom] = useState(1);
   const [narrow, setNarrow] = useState(false);
   // the goal card grows with the Tool Cupboard inside it; the tree is laid out on its real height
@@ -698,7 +694,6 @@ export function TechTree() {
   }, []);
   useEffect(() => {
     setSel(null);
-    setOpenCrates(new Set());
     if (pid) writePref("wb:tt:last", pid);
   }, [pid]);
 
@@ -709,17 +704,9 @@ export function TechTree() {
   const lay: TLayout | null = useMemo(
     () =>
       t && items
-        ? layoutTree(
-            nodesIn,
-            cols.cols,
-            cols.of,
-            showCrafted,
-            { w: narrow ? ROOT_W_NARROW : ROOT_W, h: rootH },
-            openCrates,
-            narrow
-          )
+        ? layoutTree(nodesIn, cols.cols, cols.of, showCrafted, { w: narrow ? ROOT_W_NARROW : ROOT_W, h: rootH })
         : null,
-    [t, items, nodesIn, cols, showCrafted, narrow, rootH, openCrates]
+    [t, items, nodesIn, cols, showCrafted, narrow, rootH]
   );
 
   // a new Blueprint opens fitted to the screen (down to a readable size), with its goal in view
@@ -781,7 +768,6 @@ export function TechTree() {
       if (!p) return;
       out.add(id);
       out.add(p.col);
-      out.add(`crate:${p.col}`);
     };
     if (focus) {
       const path = pathOf(focus, all);
@@ -790,7 +776,6 @@ export function TechTree() {
       path.forEach(addItem);
     } else if (sel?.kind === "col") {
       out.add(sel.id);
-      out.add(`crate:${sel.id}`);
       for (const p of lay.items.values()) if (p.col === sel.id) out.add(p.id);
     } else return null;
     // the Kits the lit ones lead into, down to the goal
@@ -838,7 +823,6 @@ export function TechTree() {
   const art = (col: string, size: number) => (
     <RustLogo logo={(colArt.get(col) ?? t.blueprint.logo) as TLogo} size={size} />
   );
-  const inCrate = new Set(lay.crates.flatMap((c) => c.items));
 
   const scrollTo = (id: string) => {
     const el = scroller.current;
@@ -860,18 +844,9 @@ export function TechTree() {
   const pick = (id: string) => {
     const n = all.get(id);
     if (!lay.items.has(id) && n?.group === "completed") setShowCrafted(true);
-    // an Item folded away in a crate: open the crate first
-    if (n && !lay.items.has(id)) setOpenCrates((s) => new Set(s).add(cols.of(n)));
     select({ kind: "item", id });
     setTimeout(() => scrollTo(id), 80);
   };
-  const toggleCrate = (col: string) =>
-    setOpenCrates((s) => {
-      const nx = new Set(s);
-      if (nx.has(col)) nx.delete(col);
-      else nx.add(col);
-      return nx;
-    });
   const refreshGame = () => {
     for (const ms of [1500, 5000])
       setTimeout(() => void mutateGlobal((k) => typeof k === "string" && k.startsWith("wb:")), ms);
@@ -1071,47 +1046,6 @@ export function TechTree() {
                       })()}
                   </svg>
 
-                  {lay.crates.map((c) => (
-                    <div
-                      key={c.key}
-                      className={cn("wb-crate", !isLit(c.key) && "wb-tl--dim")}
-                      style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
-                    >
-                      <span className="wb-crate__hd">
-                        <span>{c.items.length + c.more} items</span>
-                        {(c.more > 0 || c.open) && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleCrate(c.col);
-                            }}
-                          >
-                            {c.open ? "Fold" : "Open all"}
-                          </button>
-                        )}
-                      </span>
-                      {c.more > 0 && (
-                        <button
-                          type="button"
-                          className="wb-crate__more"
-                          style={{
-                            left: 10 + (c.items.length % c.cols) * CELL_W,
-                            top: 28 + Math.floor(c.items.length / c.cols) * 124,
-                            width: CELL_W,
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleCrate(c.col);
-                          }}
-                        >
-                          <span style={{ width: ITEM_SQ, height: ITEM_SQ }}>+{c.more}</span>
-                          <small>more</small>
-                        </button>
-                      )}
-                    </div>
-                  ))}
-
                   {lay.kits.map((k) => (
                     <KitTile
                       key={k.key}
@@ -1135,7 +1069,6 @@ export function TechTree() {
                       <ItemTile
                         p={p}
                         art={art(p.col, 44)}
-                        slot={inCrate.has(p.id)}
                         sel={sel?.kind === "item" && sel.id === p.id}
                         dim={!isLit(p.id)}
                         onSelect={() => select({ kind: "item", id: p.id })}

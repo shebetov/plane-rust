@@ -7,7 +7,7 @@
  * - an Item required by another Item (or a Component of it) sits left of that Item;
  * - an Item that leads to nothing else in its Kit is wired into the Kit;
  * - a Kit that needs another Kit has that Kit left of it; the rest are wired into the goal.
- * Items with no links at all fill a crate (a grid of slots) wired into their Kit. Any other
+ * Items with no links are wired straight into their Kit, one under another. Any other
  * requirement is drawn as a dashed arrow. Positions are plain numbers in map pixels.
  */
 export type TNodeIn = {
@@ -56,18 +56,6 @@ export type TKitTile = TColIn & {
   crafting: number;
   hidden: number;
 };
-export type TCrate = {
-  key: string;
-  col: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  cols: number;
-  items: string[];
-  more: number;
-  open: boolean;
-};
 export type TWire = {
   id: string;
   from: string;
@@ -80,7 +68,6 @@ export type TWire = {
 export type TLayout = {
   items: Map<string, TItemTile>;
   kits: TKitTile[];
-  crates: TCrate[];
   wires: TWire[];
   goal: { x: number; y: number; w: number; h: number };
   width: number;
@@ -99,8 +86,6 @@ const KIT_H = 140;
 const DEPTH_GAP = 56; // from a tile across to what it leads to (room for the wire's turn)
 const STACK_GAP = 10; // between siblings, one above the other
 const GOAL_ANCHOR = 64; // where wires meet the goal card: beside its picture
-const CRATE_PAD = 10;
-const CRATE_HD = 28;
 const PAD = 24;
 /** the Blueprint card (its name with the Tool Cupboard under it); the page passes its measured height */
 export const ROOT_W = 374;
@@ -113,7 +98,7 @@ const STATE_RANK: Record<TState, number> = { active: 0, ready: 1, locked: 2, bac
 
 type LNode = {
   key: string;
-  kind: "goal" | "kit" | "item" | "crate";
+  kind: "goal" | "kit" | "item";
   w: number;
   h: number;
   kids: LNode[];
@@ -144,9 +129,7 @@ export function layoutTree(
   colsIn: TColIn[],
   columnOf: (n: TNodeIn) => string,
   showCrafted: boolean,
-  root: { w: number; h: number },
-  openCrates: Set<string>,
-  narrow = false
+  root: { w: number; h: number }
 ): TLayout {
   const byId = new Map(all.map((n) => [n.id, n]));
   const visible = all.filter((n) => n.group !== "cancelled" && (showCrafted || n.group !== "completed"));
@@ -238,8 +221,6 @@ export function layoutTree(
   const next = (cands.length ? cands : visible.filter((n) => stateOf(n) === "ready")).sort(order)[0]?.id ?? null;
 
   // ---- the layout tree
-  const crateCols = narrow ? 3 : 4;
-  const crates: TCrate[] = [];
   const itemNode = (n: TNodeIn): LNode => {
     const ln = leaf(n.id, "item", CELL_W, CELL_H);
     ln.kids = (itemKids.get(n.id) ?? []).map(itemNode);
@@ -247,33 +228,7 @@ export function layoutTree(
   };
   const groupKids = (c: TColIn): LNode[] => {
     const tops = visible.filter((n) => colOf.get(n.id) === c.key && !treeParent.get(n.id)).sort(order);
-    const branches = tops.filter((n) => itemKids.has(n.id) || (req.get(n.id) ?? []).length);
-    const lone = tops.filter((n) => !branches.includes(n));
-    const kids = branches.map(itemNode);
-    if (lone.length >= 3) {
-      const open = openCrates.has(c.key);
-      const cols = Math.min(crateCols, lone.length);
-      const cap = cols * 2;
-      const shown = open || lone.length <= cap ? lone : lone.slice(0, cap - 1);
-      const slots = shown.length + (lone.length > cap ? 1 : 0);
-      const rows = Math.ceil(slots / cols);
-      const w = cols * CELL_W + CRATE_PAD * 2;
-      const h = CRATE_HD + rows * CELL_H + CRATE_PAD;
-      kids.push(leaf(`crate:${c.key}`, "crate", w, h));
-      crates.push({
-        key: `crate:${c.key}`,
-        col: c.key,
-        x: 0,
-        y: 0,
-        w,
-        h,
-        cols,
-        items: shown.map((n) => n.id),
-        more: lone.length - shown.length,
-        open,
-      });
-    } else kids.push(...lone.map(itemNode));
-    return kids;
+    return tops.map(itemNode);
   };
 
   // Kits: a Kit hangs above the first Kit that needs it; the rest go straight into the goal
@@ -307,8 +262,7 @@ export function layoutTree(
 
   // ---- measure (heights and widths of every subtree), then place from the goal leftwards
   // where a wire meets a node, down from its top: the middle of its square
-  const anchor = (n: LNode) =>
-    n.kind === "item" ? ITEM_SQ / 2 : n.kind === "kit" ? KIT_SQ / 2 : n.kind === "crate" ? n.h / 2 : GOAL_ANCHOR;
+  const anchor = (n: LNode) => (n.kind === "item" ? ITEM_SQ / 2 : n.kind === "kit" ? KIT_SQ / 2 : GOAL_ANCHOR);
   // the square's left and right edges (a tile's label is wider than its square)
   const sq = (n: LNode) => (n.kind === "item" ? ITEM_SQ : n.kind === "kit" ? KIT_SQ : n.w);
   const kidsH = (n: LNode) => n.kids.reduce((s, k) => s + k.span, 0) + STACK_GAP * Math.max(0, n.kids.length - 1);
@@ -332,11 +286,10 @@ export function layoutTree(
   measure(goal);
   place(goal, PAD, PAD + goal.deep);
 
-  // ---- tiles, crates and tree wires
+  // ---- tiles and tree wires
   const items = new Map<string, TItemTile>();
   const kits: TKitTile[] = [];
   const wires: TWire[] = [];
-  const crateByKey = new Map(crates.map((c) => [c.key, c]));
   const doneOf = (ln: LNode) =>
     ln.kind === "item"
       ? byId.get(ln.key)?.group === "completed"
@@ -373,16 +326,6 @@ export function layoutTree(
         crafting: s.crafting,
         hidden: s.hidden,
       });
-    } else if (n.kind === "crate") {
-      const cr = crateByKey.get(n.key)!;
-      Object.assign(cr, { x: n.x, y: n.y });
-      cr.items.forEach((id, i) =>
-        itemTile(
-          byId.get(id)!,
-          n.x + CRATE_PAD + (i % cr.cols) * CELL_W,
-          n.y + CRATE_HD + Math.floor(i / cr.cols) * CELL_H
-        )
-      );
     }
     for (const k of n.kids) {
       // from the right edge of the kid's square across to the left edge of this node's square
@@ -428,7 +371,6 @@ export function layoutTree(
   return {
     items,
     kits,
-    crates,
     wires,
     goal: { x: goal.x, y: goal.y, w: goal.w, h: goal.h },
     width: goal.deep + PAD * 2,

@@ -210,7 +210,6 @@ export function Guide() {
                 "BLUEPRINTS opens the tree. Switch bases from the list beside it.",
                 "Read it left to right. The goal sits on the right. Kits lead into it. Items lead into their Kit.",
                 "Follow the wires right. Each one leads to what it unlocks.",
-                "Items with no links wait in a crate beside their Kit.",
                 "Bright frame: ready. Padlock: needs another Item first. Tick: crafted.",
                 "The breathing corner frame marks your next craft.",
                 "Drag the handle on a tile's right side onto the Item it unlocks.",
