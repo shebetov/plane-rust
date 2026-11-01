@@ -19,7 +19,7 @@ import { DEFAULT_SCENES, bannerSlug } from "../lib/scenes";
 import { WipeReportModal } from "./wipe-report";
 import { Panel, WbPage, ago } from "./shell";
 
-const SHOW = 6;
+const SHOW = 4;
 
 function dueText(days: number) {
   if (days < 0) return `${-days} day${days === -1 ? "" : "s"} late`;
