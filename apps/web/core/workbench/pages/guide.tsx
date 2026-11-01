@@ -237,6 +237,7 @@ export function Guide() {
               items={[
                 "Looks only. No pay-to-win.",
                 "Banners for Home, notice frames, titles.",
+                "Your title hangs on a metal plate at the top of the sidebar.",
                 "Buy once. Equip or take off any time.",
               ]}
             />

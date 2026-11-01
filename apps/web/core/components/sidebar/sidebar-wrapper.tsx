@@ -17,6 +17,7 @@ import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useSize from "@/hooks/use-window-size";
 // plane web components
 import { SoundSwitches, WipeCountdown } from "@/workbench/components/top-bar";
+import { TitlePlate } from "@/workbench/components/title-plate";
 import { AppSidebarToggleButton } from "./sidebar-toggle-button";
 import { IconButton } from "@plane/propel/icon-button";
 
@@ -72,6 +73,8 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
               <AppSidebarToggleButton />
             </div>
           </div>
+          {/* Workbench: the title bought in the Shop, on a metal plate */}
+          {title === "Projects" && <TitlePlate />}
           {/* Quick actions */}
           {quickActions}
         </div>

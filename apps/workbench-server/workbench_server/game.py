@@ -96,8 +96,8 @@ SHOP = [
     *BANNERS,
     Offer("frame-gold", "Notice frame: Gold", "frame", 200, "Crafted notices in gold trim"),
     Offer("frame-red", "Notice frame: Raid Red", "frame", 150, "Crafted notices in alarm red"),
-    Offer("badge-survivor", "Title: Wipe Survivor", "badge", 300, "Shown next to your name on the main menu"),
-    Offer("badge-builder", "Title: Master Builder", "badge", 500, "Shown next to your name on the main menu"),
+    Offer("badge-survivor", "Title: Wipe Survivor", "badge", 300, "A metal plate at the top of your sidebar"),
+    Offer("badge-builder", "Title: Master Builder", "badge", 500, "A metal plate at the top of your sidebar"),
 ]
 OFFERS = {o.id: o for o in SHOP}
 
