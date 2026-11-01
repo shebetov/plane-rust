@@ -666,13 +666,13 @@ export function TechTree() {
   // the goal card grows with the Tool Cupboard inside it; the tree is laid out on its real height
   const [rootH, setRootH] = useState(300);
   const rootObs = useRef<ResizeObserver | null>(null);
-  const rootMeasured = useRef(false);
+  const [rootMeasured, setRootMeasured] = useState(false);
   const rootRef = useCallback((el: HTMLDivElement | null) => {
     rootObs.current?.disconnect();
     if (!el) return;
     const ro = new ResizeObserver(() => {
       setRootH(el.offsetHeight);
-      rootMeasured.current = true;
+      setRootMeasured(true);
     });
     ro.observe(el);
     rootObs.current = ro;
@@ -722,7 +722,7 @@ export function TechTree() {
   // which sets the tree's height, has its real size)
   useEffect(() => {
     const el = scroller.current;
-    if (!lay || !pid || !el || fitted.current === pid || !rootMeasured.current) return;
+    if (!lay || !pid || !el || fitted.current === pid || !rootMeasured) return;
     fitted.current = pid;
     const z = Math.min(1, Math.max(narrow ? 0.6 : 0.5, Math.round(((el.clientWidth - 48) / lay.width) * 100) / 100));
     setZoom(z);
@@ -732,7 +732,7 @@ export function TechTree() {
         top: el.scrollHeight,
       })
     );
-  }, [lay, pid, narrow]);
+  }, [lay, pid, narrow, rootMeasured]);
 
   // what to light up: the selected Item's path down to its Kit and the goal, or a whole Kit
   const lit = useMemo(() => {
