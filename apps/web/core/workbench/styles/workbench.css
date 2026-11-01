@@ -283,13 +283,15 @@ body::before {
   transform: skewX(-18deg);
   animation: wb-title-sheen 7s ease-in-out 1.5s infinite;
 }
+/* moved by transform only, so the GPU slides it without repainting the plate
+   (475% of its own 40% width = 190% of the plate: from -60% to 130%) */
 @keyframes wb-title-sheen {
   0%,
   70% {
-    left: -60%;
+    transform: translateX(0) skewX(-18deg);
   }
   100% {
-    left: 130%;
+    transform: translateX(475%) skewX(-18deg);
   }
 }
 .wb-title__ic {
@@ -512,13 +514,25 @@ button[class*="bg-accent-primary"] {
   color: var(--wb-amber);
 }
 .wb-chip--bad {
+  position: relative;
+  isolation: isolate;
   background: rgba(163, 60, 42, 0.35);
   color: var(--wb-red-ink);
+}
+/* the alarm pulse: an overlay fading in and out (opacity runs on the GPU, no repaint) */
+.wb-chip--bad::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgb(163, 60, 42);
+  opacity: 0;
+  pointer-events: none;
   animation: wb-pulse 2.4s ease-in-out infinite;
 }
 @keyframes wb-pulse {
   50% {
-    background: rgba(163, 60, 42, 0.6);
+    opacity: 0.38;
   }
 }
 
@@ -741,7 +755,7 @@ html {
   .wb-notice {
     animation: none;
   }
-  .wb-chip--bad {
+  .wb-chip--bad::after {
     animation: none;
   }
 }
@@ -1036,6 +1050,16 @@ html {
 .wb-menu__art i.is-on {
   opacity: 1;
 }
+.wb-menu__art i.is-in {
+  animation:
+    wb-bg-drift 12s ease-in-out infinite alternate,
+    wb-scene-in 2.5s ease-in-out;
+}
+@keyframes wb-scene-in {
+  from {
+    opacity: 0;
+  }
+}
 @media (orientation: portrait) {
   .wb-menu__art i {
     background-image: var(--wb-bg-tall, var(--wb-bg));
@@ -1076,7 +1100,6 @@ html {
     radial-gradient(ellipse 22% 16% at 20% 70%, rgba(190, 178, 160, 0.16), transparent 70%),
     radial-gradient(ellipse 30% 18% at 55% 82%, rgba(170, 160, 145, 0.14), transparent 70%),
     radial-gradient(ellipse 18% 12% at 80% 60%, rgba(200, 190, 170, 0.1), transparent 70%);
-  filter: blur(8px);
   animation: wb-fog 16s ease-in-out infinite alternate;
 }
 .wb-menu__dust {
@@ -1774,11 +1797,12 @@ html {
   stroke-dasharray: 3 46;
   opacity: 0.75;
   filter: drop-shadow(0 0 2px #c8e07a);
-  animation: wb-flow 2.4s linear infinite;
+  /* dash offsets can't run on the GPU: step 1px at a time (~20 repaints/s, not 120) */
+  animation: wb-flow 2.4s steps(49) infinite;
 }
 .wb-wire--charge path {
   stroke: #8d9a6a;
-  animation: wb-flow 3.2s linear infinite;
+  animation: wb-flow 3.2s steps(49) infinite;
 }
 .wb-wire--extra path {
   stroke: #9b8655;
@@ -1910,7 +1934,7 @@ html {
 .wb-tl__hp--crawl {
   background: repeating-linear-gradient(-45deg, #d8cfbf 0 4px, rgba(0, 0, 0, 0.6) 4px 8px);
   background-size: 11.3px 100%;
-  animation: wb-crawl 1.2s linear infinite;
+  animation: wb-crawl 1.2s steps(11) infinite;
 }
 @keyframes wb-crawl {
   to {
@@ -3383,4 +3407,10 @@ html.wb-tree-open .overflow-y-scroll:has(.wb-rt) {
 html.wb-tree-open,
 html.wb-tree-open body {
   overscroll-behavior: none;
+}
+
+/* Blueprint cards without a cover picture: Plane shows a loading pulse that never ends. Keep
+   the dark block, stop the pulse (it repainted every card all the time). */
+.group\/project-card .animate-pulse {
+  animation: none;
 }

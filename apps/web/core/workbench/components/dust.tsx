@@ -2,6 +2,8 @@
  * Dust floating through the main-menu scene, drawn on a canvas. Each mote has its own depth:
  * near ones are bigger, softer and faster, far ones are fine specks. They ride a light wind
  * with a lazy sway and twinkle as they catch the light. Pauses while the tab is hidden.
+ * Kept light: motes are stamped from two pre-drawn glow sprites, at 30 frames a second, on
+ * a canvas at CSS-pixel size (the glows are soft, so extra resolution adds nothing).
  */
 import { useEffect, useRef } from "react";
 
@@ -9,6 +11,22 @@ type TMote = { x: number; y: number; z: number; r: number; vx: number; vy: numbe
 
 const COUNT_PER_MPX = 190; // motes per million screen pixels
 const MAX = 300;
+const FRAME_MS = 1000 / 30;
+const SPRITE = 64; // sprite radius in pixels; drawn scaled down to each mote
+
+/** A soft glow, opaque at the centre. `mid` is where it falls to 45%: wider for near motes. */
+function glow(mid: number) {
+  const c = document.createElement("canvas");
+  c.width = c.height = SPRITE * 2;
+  const g2 = c.getContext("2d")!;
+  const g = g2.createRadialGradient(SPRITE, SPRITE, 0, SPRITE, SPRITE, SPRITE);
+  g.addColorStop(0, "rgb(255, 238, 205)");
+  g.addColorStop(mid, "rgba(255, 220, 170, 0.45)");
+  g.addColorStop(1, "rgba(255, 210, 160, 0)");
+  g2.fillStyle = g;
+  g2.fillRect(0, 0, SPRITE * 2, SPRITE * 2);
+  return c;
+}
 
 function spawn(w: number, h: number, anywhere: boolean): TMote {
   const z = Math.random() ** 1.6; // mostly far, a few close to the camera
@@ -34,13 +52,13 @@ export function DustCanvas({ className }: { className?: string }) {
     let w = 0;
     let h = 0;
     let motes: TMote[] = [];
+    const far = glow(0.35);
+    const near = glow(0.5);
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       w = canvas.clientWidth;
       h = canvas.clientHeight;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.width = w;
+      canvas.height = h;
       const n = Math.min(MAX, Math.round(((w * h) / 1e6) * COUNT_PER_MPX) + 20);
       motes = Array.from({ length: n }, () => spawn(w, h, true));
     };
@@ -51,6 +69,8 @@ export function DustCanvas({ className }: { className?: string }) {
     let raf = 0;
     let last = performance.now();
     const frame = (now: number) => {
+      raf = requestAnimationFrame(frame);
+      if (now - last < FRAME_MS - 2) return;
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const t = now / 1000;
@@ -73,16 +93,10 @@ export function DustCanvas({ className }: { className?: string }) {
         const twinkle = 0.55 + 0.45 * Math.sin(t * m.tw * 2 + m.ph);
         const a = Math.min(1, (0.45 + m.z * 0.6) * twinkle);
         const r = m.r * (m.z > 0.6 ? 2.6 : 1.6); // close motes are out of focus: a wider, softer glow
-        const g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r);
-        g.addColorStop(0, `rgba(255, 238, 205, ${a})`);
-        g.addColorStop(m.z > 0.6 ? 0.5 : 0.35, `rgba(255, 220, 170, ${a * 0.45})`);
-        g.addColorStop(1, "rgba(255, 210, 160, 0)");
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(m.x, m.y, r, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.globalAlpha = a;
+        ctx.drawImage(m.z > 0.6 ? near : far, m.x - r, m.y - r, r * 2, r * 2);
       }
-      raf = requestAnimationFrame(frame);
+      ctx.globalAlpha = 1;
     };
     const start = () => {
       cancelAnimationFrame(raf);
