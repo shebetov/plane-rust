@@ -126,3 +126,14 @@ def test_deadlines_lists_open_items_overdue_or_due_within_a_week():
     rows = game.deadlines(items, gbp, projects, today)
     assert [(r["id"], r["days"]) for r in rows] == [("late", -4), ("soon", 4)]
     assert rows[0]["identifier"] == "SF" and rows[1]["group"] == "started"
+
+
+def test_earned_titles_unlock_from_the_crafting_record():
+    ledger = [{"grp": "completed", "scrap": 40, "at": f"2026-10-{d:02d}T10:00:00Z"} for d in (1, 2, 30)]
+    ledger.append({"grp": "cancelled", "scrap": 0, "at": "2026-10-03T10:00:00Z"})
+    stats = game.title_stats(ledger, learned=0, tz=UTC)
+    assert stats == {"crafted": 3, "scrap": 120, "best_wipe": 2, "learned": 0}  # Oct 1-2 share a wipe
+    titles = {t["id"]: t for t in game.earned_titles(stats)}
+    assert titles["feat-spawn"]["owned"] and not titles["feat-scavenger"]["owned"]
+    assert titles["feat-scavenger"]["progress"] == 3 and titles["feat-scavenger"]["goal"] == 25
+    assert not titles["feat-researcher"]["owned"]

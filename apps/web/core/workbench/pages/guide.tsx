@@ -238,6 +238,8 @@ export function Guide() {
                 "Looks only. No pay-to-win.",
                 "Banners for Home, notice frames, titles.",
                 "Your title hangs on a metal plate at the top of the sidebar.",
+                "First visit of the day: the plate is stamped on with sparks.",
+                "Some titles can't be bought. Earn them by crafting: the Shop shows how close you are.",
                 "Buy once. Equip or take off any time.",
               ]}
             />

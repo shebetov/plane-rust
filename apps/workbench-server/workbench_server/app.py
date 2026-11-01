@@ -164,6 +164,12 @@ class World:
         ats = [game.parse_dt(r["at"]) for r in self.db.ledger() if r["project"] == pid and r["grp"] == "completed"]
         return max((a for a in ats if a), default=None)
 
+    def learned(self) -> int:
+        """Blueprints with Items crafted and none left open."""
+        crafted = {it["project"] for it in self.all_items()
+                   if self.groups[it["project"]].get(it.get("state")) == "completed"}
+        return sum(1 for pid in crafted if self.open_count(pid) == 0)
+
     def tc(self, pid: str) -> dict:
         if not any(self.groups[pid].get(i["state"]) != "cancelled" for i in self.items.get(pid, [])):
             return {"state": "empty", "until": None}  # nothing planned yet: no upkeep
@@ -219,6 +225,9 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
             return await fn(request)
         return wrapper
 
+    def earned_titles() -> list[dict]:
+        return game.earned_titles(game.title_stats(db.ledger(), world.learned()))
+
     # ---- endpoints
     async def health(_):
         return JSONResponse({"ok": True})
@@ -228,11 +237,14 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
         await world.ensure()
         earned, purchases = db.earned(), db.purchases()
         owned = sorted({p["offer"] for p in purchases if not game.OFFERS.get(p["offer"], game.SHOP[0]).repeat})
+        equipped = db.get("equipped", {})
+        title = game.TITLES.get(equipped.get("badge", ""))
         return JSONResponse({
             "wipe": wipe_info(db),
             "scrap": {"earned": earned, "spent": earned - game.balance(earned, purchases),
                       "balance": game.balance(earned, purchases)},
-            "owned": owned, "equipped": db.get("equipped", {}),
+            "owned": owned, "equipped": equipped, "title": title.__dict__ if title else None,
+            "titles_earned": [{k: t[k] for k in ("id", "name", "item")} for t in earned_titles() if t["owned"]],
             "tc": {pid: world.tc(pid) for pid in world.projects},
             "last_visit": db.get("last_visit"),
         })
@@ -361,10 +373,15 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
 
     @authed
     async def shop(_):
+        """Offers for scrap, the bought titles' plates, and the earned titles with progress."""
         earned, purchases = db.earned(), db.purchases()
         owned = {p["offer"] for p in purchases}
+        await world.ensure()
         return JSONResponse({"balance": game.balance(earned, purchases), "equipped": db.get("equipped", {}),
-                             "offers": [{**o.__dict__, "owned": o.id in owned and not o.repeat} for o in game.SHOP]})
+                             "offers": [{**o.__dict__, "owned": o.id in owned and not o.repeat} for o in game.SHOP],
+                             "titles": [{**t.__dict__, "owned": t.id in owned}
+                                        for t in game.TITLES.values() if not t.stat],
+                             "earned": earned_titles()})
 
     @authed
     async def buy(request: Request):
@@ -397,7 +414,11 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
         kind, oid = body.get("kind"), body.get("offer")
         if kind not in ("banner", "frame", "badge"):
             return JSONResponse({"error": "bad kind"}, status_code=400)
-        if oid and not any(p["offer"] == oid for p in db.purchases()):
+        if oid and kind == "badge" and oid in game.TITLES and game.TITLES[oid].stat:
+            await world.ensure()
+            if not any(t["id"] == oid and t["owned"] for t in earned_titles()):
+                return JSONResponse({"error": "not earned yet"}, status_code=403)
+        elif oid and not any(p["offer"] == oid for p in db.purchases()):
             return JSONResponse({"error": "not owned"}, status_code=403)
         eq = db.get("equipped", {})
         if oid:

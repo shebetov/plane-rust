@@ -94,6 +94,54 @@ SHOP = [
 OFFERS = {o.id: o for o in SHOP}
 
 
+# ---------------------------------------------------------------- titles
+
+@dataclass(frozen=True)
+class Title:
+    """A title worn on the sidebar plate. Bought ones are Shop offers with the same id; earned
+    ones unlock when `stat` reaches `goal`."""
+    id: str
+    name: str
+    item: str  # Rust item icon
+    tone: str  # plate metal: copper | steel | brass
+    motto: str
+    stat: str | None = None  # crafted | scrap | best_wipe | learned
+    goal: int = 0
+
+
+TITLES = {t.id: t for t in [
+    Title("badge-survivor", "Wipe Survivor", "hazmatsuit", "steel", "Lived through the wipe"),
+    Title("badge-builder", "Master Builder", "building.planner", "brass", "Bases that never rust"),
+    Title("feat-spawn", "Fresh Spawn", "rock", "copper", "Woke up on the beach", "crafted", 1),
+    Title("feat-scavenger", "Scavenger", "hatchet", "copper", "Picks up everything", "crafted", 25),
+    Title("feat-grinder", "Grinder", "jackhammer", "steel", "Never stops farming", "crafted", 100),
+    Title("feat-veteran", "Veteran", "rifle.ak", "brass", "Seen it all", "crafted", 250),
+    Title("feat-raider", "Raider", "explosive.timed", "steel", "Twenty Items in one wipe", "best_wipe", 20),
+    Title("feat-baron", "Scrap Baron", "scrap", "brass", "Sitting on a scrap pile", "scrap", 2000),
+    Title("feat-researcher", "Researcher", "researchpaper", "steel", "Learned a Blueprint", "learned", 1),
+]}
+EARNED_TITLES = [t for t in TITLES.values() if t.stat]
+
+
+def title_stats(ledger: list[dict], learned: int, tz: timezone | None = None) -> dict:
+    """What earned titles are measured by: Items crafted and scrap earned (ledger, so archived
+    Items still count), the most Items crafted in one wipe, and Blueprints learned."""
+    done = [r for r in ledger if r["grp"] == "completed"]
+    per_wipe: dict[int, int] = {}
+    for r in done:
+        at = parse_dt(r["at"])
+        if at:
+            i = wipe_at(at, tz)["index"]
+            per_wipe[i] = per_wipe.get(i, 0) + 1
+    return {"crafted": len(done), "scrap": sum(r["scrap"] for r in done),
+            "best_wipe": max(per_wipe.values(), default=0), "learned": learned}
+
+
+def earned_titles(stats: dict) -> list[dict]:
+    return [{**t.__dict__, "progress": min(stats[t.stat], t.goal), "owned": stats[t.stat] >= t.goal}
+            for t in EARNED_TITLES]
+
+
 def balance(earned: int, purchases: list[dict]) -> int:
     return earned - sum(p["cost"] for p in purchases)
 

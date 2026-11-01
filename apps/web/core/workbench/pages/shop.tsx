@@ -1,23 +1,46 @@
 /**
  * The shop, after Rust's vending machine: FOR SALE | COST | BUY rows. Everything is
- * cosmetic (main-menu banners, shown as a grid of pictures, notice frames, titles) except upkeep, which is paid from a
- * Blueprint's Tool Cupboard. Scrap is earned by crafting Items.
+ * cosmetic (notice frames, titles, and main-menu banners shown as a grid of pictures) except
+ * upkeep, which is paid from a Blueprint's Tool Cupboard. Scrap is earned by crafting Items.
+ * Titles show their plate; earned titles unlock from the crafting record, with progress.
  */
 import { useState } from "react";
 import { mutate } from "swr";
 import { cn } from "@plane/utils";
-import type { TOffer } from "../lib/api";
+import type { TOffer, TTitle } from "../lib/api";
 import { useWbShop, wb } from "../lib/api";
 import { play } from "../sound/engine";
 import { pushNotice } from "../components/notices";
 import { RustItem } from "../components/rust-icon";
+import { PlateFace } from "../components/title-plate";
 import { bannerSlug, sceneThumb } from "../lib/scenes";
 import { WbPage } from "./shell";
 
+const STAT: Record<string, string> = {
+  crafted: "Items crafted",
+  scrap: "scrap earned",
+  best_wipe: "Items crafted in one wipe",
+  learned: "Blueprints learned",
+};
+
 function Preview({ o }: { o: TOffer }) {
   if (o.kind === "upkeep") return <RustItem item="cupboard.tool" size={54} />;
-  if (o.kind === "frame") return <span className={cn("wb-shop__frame", `wb-notice--${o.id.replace("frame-", "")}`)} />;
-  return <span className="wb-shop__badge">{o.name.replace("Title: ", "")}</span>;
+  return <span className={cn("wb-shop__frame", `wb-notice--${o.id.replace("frame-", "")}`)} />;
+}
+
+function Goal({ t }: { t: TTitle }) {
+  const pct = Math.round(((t.progress ?? 0) / t.goal) * 100);
+  return (
+    <span className="wb-shop__goal">
+      <b>
+        {(t.progress ?? 0).toLocaleString()} / {t.goal.toLocaleString()}
+      </b>{" "}
+      {t.stat ? STAT[t.stat] : ""}
+      <span className="wb-shop__bar">
+        <i style={{ width: `${pct}%` }} />
+      </span>
+    </span>
+  );
 }
 
 export function Shop() {
@@ -43,9 +66,22 @@ export function Shop() {
     }
   };
 
+  const wear = async (t: TTitle, on: boolean) => {
+    setBusy(t.id);
+    try {
+      await wb.post("equip", { kind: "badge", offer: on ? null : t.id });
+      play("click");
+      await Promise.all([mutate("wb:shop"), mutate("wb:state")]);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const offers = data?.offers ?? [];
   const banners = offers.filter((o) => o.kind === "banner");
-  const others = offers.filter((o) => o.kind !== "upkeep" && o.kind !== "banner");
+  const others = offers.filter((o) => o.kind === "frame");
+  const offerOf = (id: string) => offers.find((o) => o.id === id);
+  const titles = [...(data?.titles ?? []), ...(data?.earned ?? [])];
   const isOn = (o: TOffer) => data?.equipped[o.kind as "banner" | "frame" | "badge"] === o.id;
   const button = (o: TOffer) => {
     const equipped = isOn(o);
@@ -103,6 +139,52 @@ export function Shop() {
             {button(o)}
           </div>
         ))}
+
+        <div className="wb-shop__head wb-shop__head--banners">
+          <span>Titles</span>
+          <span>
+            {titles.filter((t) => t.owned).length} / {titles.length} owned
+          </span>
+        </div>
+        <div className="wb-shop__titles">
+          {titles.map((t) => {
+            const offer = offerOf(t.id);
+            const on = data?.equipped.badge === t.id;
+            return (
+              <div
+                key={t.id}
+                className={cn("wb-shop__tcard", t.owned && "wb-shop__tcard--owned", on && "wb-shop__tcard--on")}
+              >
+                <PlateFace title={t} className={cn(!t.owned && "wb-title--locked")} />
+                <span className="wb-shop__tfoot">
+                  {t.owned ? (
+                    <>
+                      <span className="wb-shop__goal">{t.stat ? "Earned" : "Bought"}</span>
+                      <button
+                        type="button"
+                        className={cn("wb-btn", on ? "wb-btn--ghost" : "wb-btn--amber")}
+                        disabled={busy === t.id}
+                        onClick={() => void wear(t, on)}
+                        data-wb-silent
+                      >
+                        {on ? "Unequip" : "Equip"}
+                      </button>
+                    </>
+                  ) : offer ? (
+                    <>
+                      <span className="wb-shop__price">
+                        <RustItem item="scrap" size={22} />x{offer.cost}
+                      </span>
+                      {button(offer)}
+                    </>
+                  ) : (
+                    <Goal t={t} />
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
 
         <div className="wb-shop__head wb-shop__head--banners">
           <span>Main-menu banners</span>

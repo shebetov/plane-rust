@@ -163,3 +163,14 @@ def test_stale_cache_is_served_at_once_and_refreshed_in_the_background(env):
 
     c.portal.call(settle)  # let the refresh finish
     assert [i["name"] for i in c.get("/wb/api/crafting").json()["items"]] == ["Run"]
+
+
+def test_earned_titles_can_be_worn_once_unlocked(env):
+    c, _, _ = env
+    shop = c.get("/wb/api/shop").json()
+    earned = {t["id"]: t for t in shop["earned"]}
+    assert earned["feat-spawn"]["owned"] and not earned["feat-grinder"]["owned"]
+    assert c.post("/wb/api/equip", json={"kind": "badge", "offer": "feat-grinder"}).status_code == 403
+    assert c.post("/wb/api/equip", json={"kind": "badge", "offer": "feat-spawn"}).status_code == 200
+    s = c.get("/wb/api/state").json()
+    assert s["title"]["name"] == "Fresh Spawn" and [t["id"] for t in s["titles_earned"]] == ["feat-spawn"]

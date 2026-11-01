@@ -13,6 +13,8 @@ export type TState = {
   scrap: { earned: number; spent: number; balance: number };
   owned: string[];
   equipped: { banner?: string; frame?: string; badge?: string };
+  title: TTitle | null;
+  titles_earned: TEarned[];
   tc: Record<string, TTc>;
   last_visit: string | null;
 };
@@ -159,7 +161,26 @@ export type TOffer = {
   repeat: boolean;
   owned: boolean;
 };
-export type TShop = { balance: number; equipped: TState["equipped"]; offers: TOffer[] };
+/** A sidebar title: bought in the Shop, or earned when `stat` reaches `goal`. */
+export type TTitle = {
+  id: string;
+  name: string;
+  item: string;
+  tone: "copper" | "steel" | "brass";
+  motto: string;
+  stat: string | null;
+  goal: number;
+  progress?: number;
+  owned?: boolean;
+};
+export type TEarned = Pick<TTitle, "id" | "name" | "item">;
+export type TShop = {
+  balance: number;
+  equipped: TState["equipped"];
+  offers: TOffer[];
+  titles: TTitle[];
+  earned: TTitle[];
+};
 
 export type TWipeReport = {
   index: number;
