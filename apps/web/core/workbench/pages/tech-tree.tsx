@@ -666,10 +666,14 @@ export function TechTree() {
   // the goal card grows with the Tool Cupboard inside it; the tree is laid out on its real height
   const [rootH, setRootH] = useState(300);
   const rootObs = useRef<ResizeObserver | null>(null);
+  const rootMeasured = useRef(false);
   const rootRef = useCallback((el: HTMLDivElement | null) => {
     rootObs.current?.disconnect();
     if (!el) return;
-    const ro = new ResizeObserver(() => setRootH(el.offsetHeight));
+    const ro = new ResizeObserver(() => {
+      setRootH(el.offsetHeight);
+      rootMeasured.current = true;
+    });
     ro.observe(el);
     rootObs.current = ro;
   }, []);
@@ -714,10 +718,11 @@ export function TechTree() {
     [t, items, nodesIn, cols, showCrafted, narrow, rootH, openCrates]
   );
 
-  // a new Blueprint opens fitted to the width, scrolled down to its goal
+  // a new Blueprint opens fitted to the width, scrolled down to its goal (once the goal card,
+  // which sets the tree's height, has its real size)
   useEffect(() => {
     const el = scroller.current;
-    if (!lay || !pid || !el || fitted.current === pid) return;
+    if (!lay || !pid || !el || fitted.current === pid || !rootMeasured.current) return;
     fitted.current = pid;
     const z = Math.min(1, Math.max(narrow ? 0.6 : 0.5, Math.round(((el.clientWidth - 48) / lay.width) * 100) / 100));
     setZoom(z);
@@ -966,7 +971,7 @@ export function TechTree() {
         </div>
 
         <div className="wb-rt__body">
-          {home && <TreeRail slug={slug} current={pid} list={home.blueprints} />}
+          {home ? <TreeRail slug={slug} current={pid} list={home.blueprints} /> : <nav className="wb-rail" />}
           <div className={cn("wb-rt__wrap", sel && "wb-rt__wrap--panel")}>
             {/* drag on the background pans the map (touch scrolls natively) */}
             {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events */}
