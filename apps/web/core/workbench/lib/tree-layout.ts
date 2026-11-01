@@ -1,11 +1,12 @@
 /* oxlint-disable unicorn/no-array-sort -- every sort here is on a fresh copy (the app targets ES2022, no toSorted) */
 /**
- * Lays out a Blueprint as a path to its goal, after the Thesys map and Rust's tech tree:
- * the Blueprint (the goal) at the bottom, its Kits in a row above it, and each Kit's Items
- * above the Kit. Whatever leads to something sits above it and is wired down into it:
- * - an Item required by another Item (or a Component of it) hangs above that Item;
+ * Lays out a Blueprint as a path to its goal, after the Thesys map and Rust's tech tree,
+ * read left to right: the Blueprint (the goal) on the right, its Kits in a column left of it,
+ * and each Kit's Items left of the Kit. Whatever leads to something sits left of it and is
+ * wired right into it:
+ * - an Item required by another Item (or a Component of it) sits left of that Item;
  * - an Item that leads to nothing else in its Kit is wired into the Kit;
- * - a Kit that needs another Kit has that Kit above it; the rest are wired into the goal.
+ * - a Kit that needs another Kit has that Kit left of it; the rest are wired into the goal.
  * Items with no links at all fill a crate (a grid of slots) wired into their Kit. Any other
  * requirement is drawn as a dashed arrow. Positions are plain numbers in map pixels.
  */
@@ -91,12 +92,13 @@ export type TLayout = {
 export const GOAL = "goal";
 export const CELL_W = 112;
 export const ITEM_SQ = 62;
-const CELL_H = 124; // tile, then a label of up to three lines
+const CELL_H = 118; // tile, then a label of up to three lines
 export const KIT_W = 124;
 export const KIT_SQ = 84;
 const KIT_H = 140;
-const V_GAP = 40; // from a label's foot down to the next tile
-const H_GAP = 18;
+const DEPTH_GAP = 56; // from a tile across to what it leads to (room for the wire's turn)
+const STACK_GAP = 10; // between siblings, one above the other
+const GOAL_ANCHOR = 64; // where wires meet the goal card: beside its picture
 const CRATE_PAD = 10;
 const CRATE_HD = 28;
 const PAD = 24;
@@ -115,11 +117,11 @@ type LNode = {
   w: number;
   h: number;
   kids: LNode[];
-  span: number;
-  tall: number;
+  span: number; // height of the subtree
+  deep: number; // width of the subtree, from its leftmost tile to this node's right edge
   x: number;
   y: number;
-  cx: number;
+  cy: number; // where wires meet it
 };
 
 function leaf(key: string, kind: LNode["kind"], w: number, h: number): LNode {
@@ -130,10 +132,10 @@ function leaf(key: string, kind: LNode["kind"], w: number, h: number): LNode {
     h,
     kids: [],
     span: 0,
-    tall: 0,
+    deep: 0,
     x: 0,
     y: 0,
-    cx: 0,
+    cy: 0,
   };
 }
 
@@ -303,27 +305,32 @@ export function layoutTree(
     else goal.kids.push(kitNode(c));
   }
 
-  // ---- measure (widths and heights of every subtree), then place from the goal up
+  // ---- measure (heights and widths of every subtree), then place from the goal leftwards
+  // where a wire meets a node, down from its top: the middle of its square
+  const anchor = (n: LNode) =>
+    n.kind === "item" ? ITEM_SQ / 2 : n.kind === "kit" ? KIT_SQ / 2 : n.kind === "crate" ? n.h / 2 : GOAL_ANCHOR;
+  // the square's left and right edges (a tile's label is wider than its square)
+  const sq = (n: LNode) => (n.kind === "item" ? ITEM_SQ : n.kind === "kit" ? KIT_SQ : n.w);
+  const kidsH = (n: LNode) => n.kids.reduce((s, k) => s + k.span, 0) + STACK_GAP * Math.max(0, n.kids.length - 1);
   const measure = (n: LNode) => {
     n.kids.forEach(measure);
-    const kidsW = n.kids.reduce((s, k) => s + k.span, 0) + H_GAP * Math.max(0, n.kids.length - 1);
-    n.span = Math.max(n.w, kidsW);
-    n.tall = n.h + (n.kids.length ? V_GAP + Math.max(...n.kids.map((k) => k.tall)) : 0);
+    n.span = Math.max(n.h, kidsH(n));
+    n.deep = n.w + (n.kids.length ? DEPTH_GAP + Math.max(...n.kids.map((k) => k.deep)) : 0);
   };
-  const place = (n: LNode, left: number, bottom: number) => {
-    n.y = bottom - n.h;
-    const kidsW = n.kids.reduce((s, k) => s + k.span, 0) + H_GAP * Math.max(0, n.kids.length - 1);
-    let x = left + (n.span - kidsW) / 2;
+  const place = (n: LNode, top: number, right: number) => {
+    n.x = right - n.w;
+    let y = top + (n.span - kidsH(n)) / 2;
     for (const k of n.kids) {
-      place(k, x, n.y - V_GAP);
-      x += k.span + H_GAP;
+      place(k, y, n.x + (n.w - sq(n)) / 2 - DEPTH_GAP);
+      y += k.span + STACK_GAP;
     }
-    const mid = n.kids.length ? (n.kids[0].cx + n.kids[n.kids.length - 1].cx) / 2 : left + n.span / 2;
-    n.cx = Math.min(left + n.span - n.w / 2, Math.max(left + n.w / 2, mid));
-    n.x = n.cx - n.w / 2;
+    const a = anchor(n);
+    const mid = n.kids.length ? (n.kids[0].cy + n.kids[n.kids.length - 1].cy) / 2 : top + n.span / 2;
+    n.cy = Math.min(top + n.span - n.h + a, Math.max(top + a, mid));
+    n.y = n.cy - a;
   };
   measure(goal);
-  place(goal, PAD, PAD + goal.tall);
+  place(goal, PAD, PAD + goal.deep);
 
   // ---- tiles, crates and tree wires
   const items = new Map<string, TItemTile>();
@@ -378,15 +385,16 @@ export function layoutTree(
       );
     }
     for (const k of n.kids) {
-      const fromY = k.y + k.h - (k.kind === "crate" ? 0 : 4);
-      const toY = n.y;
+      // from the right edge of the kid's square across to the left edge of this node's square
+      const fromX = k.x + (k.w + sq(k)) / 2;
+      const toX = n.x + (n.w - sq(n)) / 2;
       const nextHere = k.kind === "item" && k.key === next;
       wires.push({
         id: `w-${k.key}`,
         from: k.key,
         to: n.key,
         kind: "tree",
-        d: `M${k.cx} ${fromY}V${toY - V_GAP / 2}H${n.cx}V${toY}`,
+        d: `M${fromX} ${k.cy}H${toX - DEPTH_GAP / 2}V${n.cy}H${toX}`,
         done: doneOf(k),
         charge: nextHere,
       });
@@ -400,17 +408,17 @@ export function layoutTree(
     for (const b of req.get(p.id) ?? []) {
       const q = items.get(b);
       if (!q || treeParent.get(b) === p.id) continue;
-      const sx = q.x + CELL_W / 2;
-      const sy = q.y + ITEM_SQ;
-      const tx = p.x + CELL_W / 2;
-      const ty = p.y;
-      const bend = Math.max(40, Math.abs(ty - sy) / 2);
+      const sx = q.x + (CELL_W + ITEM_SQ) / 2;
+      const sy = q.y + ITEM_SQ / 2;
+      const tx = p.x + (CELL_W - ITEM_SQ) / 2;
+      const ty = p.y + ITEM_SQ / 2;
+      const bend = Math.max(40, Math.abs(tx - sx) / 2);
       wires.push({
         id: `r-${b}-${p.id}`,
         from: b,
         to: p.id,
         kind: "extra",
-        d: `M${sx} ${sy}C${sx} ${sy + bend},${tx} ${ty - bend},${tx} ${ty}`,
+        d: `M${sx} ${sy}C${sx + bend} ${sy},${tx - bend} ${ty},${tx} ${ty}`,
         done: q.group === "completed",
         charge: false,
       });
@@ -423,8 +431,8 @@ export function layoutTree(
     crates,
     wires,
     goal: { x: goal.x, y: goal.y, w: goal.w, h: goal.h },
-    width: goal.span + PAD * 2,
-    height: goal.tall + PAD * 2,
+    width: goal.deep + PAD * 2,
+    height: goal.span + PAD * 2,
     next,
   };
 }

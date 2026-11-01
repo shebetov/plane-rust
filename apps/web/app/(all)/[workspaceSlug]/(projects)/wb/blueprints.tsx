@@ -1,7 +1,7 @@
-// Workbench route: see core/workbench/pages/server-browser.tsx
+// Workbench route: see core/workbench/pages/blueprints.tsx
 import { observer } from "mobx-react";
-import { ServerBrowser } from "@/workbench/pages/server-browser";
+import { BlueprintsEntry } from "@/workbench/pages/blueprints";
 
 export default observer(function WorkbenchRoute() {
-  return <ServerBrowser />;
+  return <BlueprintsEntry />;
 });

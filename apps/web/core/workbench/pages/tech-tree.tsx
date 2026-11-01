@@ -5,8 +5,8 @@
  * Selecting a block lights up its whole path and opens the research panel: details,
  * requirements, what it unlocks, and the buttons to start, craft and link Items.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Circle, Flag, Hammer, Link2, Lock, Minus, Plus, Search, X } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Check, Circle, Flag, Hammer, Link2, Lock, Plus, Search, X } from "lucide-react";
 import { Link } from "react-router";
 import { useParams } from "next/navigation";
 import { mutate as mutateGlobal } from "swr";
@@ -26,7 +26,7 @@ import type { TColIn, TItemTile, TKitTile, TLayout, TNodeIn, TState } from "../l
 import { CELL_W, GOAL, ITEM_SQ, KIT_SQ, KIT_W, ROOT_W, ROOT_W_NARROW, layoutTree, pathOf } from "../lib/tree-layout";
 import { play } from "../sound/engine";
 import { RustItem, RustLogo } from "../components/rust-icon";
-import { ToolCupboardPanel } from "./server-browser";
+import { ToolCupboardPanel } from "../components/tool-cupboard";
 import { WbPage } from "./shell";
 
 const STATUS: Record<string, string> = {
@@ -589,14 +589,14 @@ function nodeAt(cx: number, cy: number): string | null {
   );
 }
 
-function readPref(key: string) {
+export function readPref(key: string) {
   try {
     return localStorage.getItem(key);
   } catch {
     return null;
   }
 }
-function writePref(key: string, v: string) {
+export function writePref(key: string, v: string) {
   try {
     localStorage.setItem(key, v);
   } catch {
@@ -678,6 +678,9 @@ export function TechTree() {
     rootObs.current = ro;
   }, []);
   const scroller = useRef<HTMLDivElement>(null);
+  // the map point under the cursor while wheel-zooming, kept under the cursor after the zoom
+  const zoomRef = useRef(1);
+  const zoomAnchor = useRef<{ mx: number; my: number; cx: number; cy: number } | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const fitted = useRef<string | null>(null);
   const [link, setLink] = useState<{ from: string; x: number; y: number; over: string | null } | null>(null);
@@ -696,6 +699,7 @@ export function TechTree() {
   useEffect(() => {
     setSel(null);
     setOpenCrates(new Set());
+    if (pid) writePref("wb:tt:last", pid);
   }, [pid]);
 
   const tags = t?.labels ?? {};
@@ -718,21 +722,54 @@ export function TechTree() {
     [t, items, nodesIn, cols, showCrafted, narrow, rootH, openCrates]
   );
 
-  // a new Blueprint opens fitted to the width, scrolled down to its goal (once the goal card,
-  // which sets the tree's height, has its real size)
+  // a new Blueprint opens fitted to the screen (down to a readable size), with its goal in view
+  // on the right (once the goal card, which sets the tree's size, has its real height)
   useEffect(() => {
     const el = scroller.current;
     if (!lay || !pid || !el || fitted.current === pid || !rootMeasured) return;
     fitted.current = pid;
-    const z = Math.min(1, Math.max(narrow ? 0.6 : 0.5, Math.round(((el.clientWidth - 48) / lay.width) * 100) / 100));
+    const fitZ = Math.min((el.clientWidth - 48) / lay.width, (el.clientHeight - 48) / lay.height);
+    const z = Math.min(1, Math.max(narrow ? 0.6 : 0.5, Math.round(fitZ * 100) / 100));
+    zoomAnchor.current = null;
+    zoomRef.current = z;
     setZoom(z);
     requestAnimationFrame(() =>
       el.scrollTo({
-        left: (lay.goal.x + lay.goal.w / 2) * z - el.clientWidth / 2 + 24,
-        top: el.scrollHeight,
+        left: (lay.goal.x + lay.goal.w) * z + 48 - el.clientWidth,
+        top: (lay.goal.y + lay.goal.h / 2) * z + 24 - el.clientHeight / 2,
       })
     );
   }, [lay, pid, narrow, rootMeasured]);
+
+  // the mouse wheel (or a trackpad pinch) zooms around the cursor; drag pans
+  const mapReady = !!lay;
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const z = zoomRef.current;
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+      const nz = Math.min(1.5, Math.max(0.2, z * Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015))));
+      if (nz === z) return;
+      const r = el.getBoundingClientRect();
+      const cx = e.clientX - r.left;
+      const cy = e.clientY - r.top;
+      zoomAnchor.current = { mx: (el.scrollLeft + cx - 24) / z, my: (el.scrollTop + cy - 24) / z, cx, cy };
+      zoomRef.current = nz;
+      setZoom(nz);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [mapReady]);
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    const a = zoomAnchor.current;
+    if (!el || !a) return;
+    zoomAnchor.current = null;
+    el.scrollLeft = a.mx * zoom + 24 - a.cx;
+    el.scrollTop = a.my * zoom + 24 - a.cy;
+  }, [zoom]);
 
   // what to light up: the selected Item's path down to its Kit and the goal, or a whole Kit
   const lit = useMemo(() => {
@@ -808,8 +845,8 @@ export function TechTree() {
     const p = lay.items.get(id);
     if (!p || !el) return;
     el.scrollTo({
-      left: (p.x + CELL_W / 2) * zoom - el.clientWidth / 2 + 24,
-      top: p.y * zoom - el.clientHeight / 3,
+      left: (p.x + CELL_W / 2) * zoom + 24 - el.clientWidth / 2,
+      top: (p.y + ITEM_SQ / 2) * zoom + 24 - el.clientHeight / 2,
       behavior: "smooth",
     });
   };
@@ -918,11 +955,6 @@ export function TechTree() {
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   };
-  const setZoomClamped = (z: number) => setZoom(Math.min(1.3, Math.max(0.3, Math.round(z * 100) / 100)));
-  const fit = () => {
-    const el = scroller.current;
-    if (el) setZoomClamped(zoom === 1 ? Math.min(1, (el.clientWidth - 48) / lay.width) : 1);
-  };
 
   const selItem = sel?.kind === "item" ? all.get(sel.id) : undefined;
   const selKit = sel?.kind === "col" ? lay.kits.find((k) => k.key === sel.id) : undefined;
@@ -953,17 +985,6 @@ export function TechTree() {
               <Check className="size-3.5" />
               {showCrafted ? "Hide crafted" : `Show crafted${done ? ` (${done})` : ""}`}
             </button>
-            <span className="wb-rt__zoom">
-              <button type="button" onClick={() => setZoomClamped(zoom - 0.15)} aria-label="Zoom out">
-                <Minus className="size-3.5" />
-              </button>
-              <button type="button" onClick={fit} className="wb-rt__fit" title="Fit / 100%">
-                {Math.round(zoom * 100)}%
-              </button>
-              <button type="button" onClick={() => setZoomClamped(zoom + 0.15)} aria-label="Zoom in">
-                <Plus className="size-3.5" />
-              </button>
-            </span>
             <Link className="wb-tags__link" to={`/${slug}/projects/${pid}/issues/`}>
               List view →
             </Link>
@@ -1038,11 +1059,11 @@ export function TechTree() {
                       (() => {
                         const s = lay.items.get(link.from);
                         if (!s) return null;
-                        const sx = s.x + CELL_W / 2;
-                        const sy = s.y + ITEM_SQ;
+                        const sx = s.x + (CELL_W + ITEM_SQ) / 2;
+                        const sy = s.y + ITEM_SQ / 2;
                         return (
                           <path
-                            d={`M${sx} ${sy}C${sx} ${sy + 60},${link.x} ${link.y - 60},${link.x} ${link.y}`}
+                            d={`M${sx} ${sy}C${sx + 60} ${sy},${link.x - 60} ${link.y},${link.x} ${link.y}`}
                             className="wb-wire--drag"
                             markerEnd="url(#wb-arrow)"
                           />
@@ -1198,7 +1219,7 @@ export function TechTree() {
             {!sel && !flash && (
               <div className="wb-rt__hint">
                 <Link2 className="size-3.5" />
-                Drag the handle under a tile onto an Item it unlocks
+                Scroll to zoom · drag a tile's handle onto an Item it unlocks
               </div>
             )}
             {selItem && (

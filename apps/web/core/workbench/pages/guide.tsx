@@ -47,8 +47,8 @@ const LOOP: Array<[icon: string, text: string]> = [
 
 const SCREENS: Row[] = [
   ["workbench2", "Home", "Quick join, news, wipe clock."],
-  ["blueprintbase", "Blueprints", "Every base and its cupboard state."],
-  ["research.table", "Research tree", "Open a Blueprint to see its tree."],
+  ["blueprintbase", "Blueprints", "Straight into the research tree. Your last base first."],
+  ["research.table", "Research tree", "Every base in the list beside it. Tap one to switch."],
   ["flare", "Wipe", "This wipe and the last one."],
   ["vending.machine", "Shop", "Spend scrap on looks."],
 ];
@@ -190,7 +190,7 @@ export function Guide() {
                 "All Items crafted: LEARNED. No upkeep needed.",
               ]}
             />
-            <p className="wb-guide__note">Find it under the goal, at the foot of the research tree.</p>
+            <p className="wb-guide__note">Find it under the goal, on the right of the research tree.</p>
           </Panel>
 
           <Panel title={<Title icon="bandage">Decay</Title>}>
@@ -207,13 +207,14 @@ export function Guide() {
           <Panel title={<Title icon="research.table">Research tree</Title>}>
             <Lines
               items={[
-                "Open a Blueprint to see its tree. Switch Blueprints from the list beside it.",
-                "The goal sits at the bottom. Kits stand on it. Items stand on their Kit.",
-                "Follow the wires down. Each one leads to what it unlocks.",
-                "Items with no links wait in a crate above their Kit.",
+                "BLUEPRINTS opens the tree. Switch bases from the list beside it.",
+                "Read it left to right. The goal sits on the right. Kits lead into it. Items lead into their Kit.",
+                "Follow the wires right. Each one leads to what it unlocks.",
+                "Items with no links wait in a crate beside their Kit.",
                 "Bright frame: ready. Padlock: needs another Item first. Tick: crafted.",
                 "The breathing corner frame marks your next craft.",
-                "Drag the handle under a tile onto the Item it unlocks.",
+                "Drag the handle on a tile's right side onto the Item it unlocks.",
+                "Scroll to zoom. Drag the board to move around.",
                 "Crafted Items hide. Turn on SHOW CRAFTED to see them.",
               ]}
             />

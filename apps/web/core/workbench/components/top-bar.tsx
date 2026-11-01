@@ -66,6 +66,8 @@ function CupboardChip() {
   const decaying = states.filter((s) => s.state === "decaying").length;
   const due = states.filter((s) => s.state === "due").length;
   if (!decaying && !due) return null;
+  // opens the research tree of the worst-off Blueprint (its cupboard sits under the goal)
+  const worst = Object.entries(data.tc).find(([, s]) => s.state === (decaying ? "decaying" : "due"))?.[0];
   return (
     <Tooltip
       tooltipContent={
@@ -76,7 +78,7 @@ function CupboardChip() {
       position="bottom"
     >
       <Link
-        to={`/${workspaceSlug.toString()}/wb/blueprints`}
+        to={`/${workspaceSlug.toString()}/wb/${worst ? `tree/${worst}` : "blueprints"}`}
         className={cn("wb-chip", decaying ? "wb-chip--bad" : "wb-chip--warn")}
       >
         <RustItem item="cupboard.tool" size={20} />

@@ -127,7 +127,7 @@ export function WipePage() {
         )}
         <p className="wb-muted">
           A server wipe every second Thursday. Unfinished Items roll over to the next Wipe in every Blueprint.{" "}
-          <Link to={`/${workspaceSlug?.toString()}/wb/blueprints`}>Open the server browser</Link>.
+          <Link to={`/${workspaceSlug?.toString()}/wb/blueprints`}>Open the research tree</Link>.
         </p>
       </div>
     </WbPage>
