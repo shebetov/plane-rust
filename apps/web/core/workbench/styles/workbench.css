@@ -1491,6 +1491,8 @@ html {
   overflow: auto;
   overscroll-behavior: contain;
   cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
   background:
     linear-gradient(rgba(227, 217, 204, 0.035) 1px, transparent 1px) 0 0 / 32px 32px,
     linear-gradient(90deg, rgba(227, 217, 204, 0.035) 1px, transparent 1px) 0 0 / 32px 32px,
@@ -3092,4 +3094,13 @@ html.wb-menu-open aside.group\/sidebar .bg-surface-1 {
   .wb-load__spin {
     animation-duration: 3s;
   }
+}
+
+/* the research tree page holds still: only its map pans and zooms (the height is set in tech-tree.tsx) */
+html.wb-tree-open .overflow-y-scroll:has(.wb-rt) {
+  overflow: hidden !important;
+}
+html.wb-tree-open,
+html.wb-tree-open body {
+  overscroll-behavior: none;
 }

@@ -674,6 +674,28 @@ export function TechTree() {
     rootObs.current = ro;
   }, []);
   const scroller = useRef<HTMLDivElement>(null);
+  // the page itself never scrolls: the tree fills the space left under the header (only the map
+  // inside it pans and zooms), and Plane's scrolling page frame is locked while the tree is open
+  const pageFit = useRef<() => void>(() => {});
+  const pageRef = useCallback((el: HTMLDivElement | null) => {
+    window.removeEventListener("resize", pageFit.current);
+    if (!el) return;
+    const frame = el.closest<HTMLElement>(".overflow-y-scroll");
+    const fit = () => {
+      if (frame) frame.scrollTop = 0;
+      el.style.height = `${Math.max(360, window.innerHeight - el.getBoundingClientRect().top - 12)}px`;
+    };
+    pageFit.current = fit;
+    fit();
+    window.addEventListener("resize", fit);
+  }, []);
+  useEffect(() => {
+    document.documentElement.classList.add("wb-tree-open");
+    return () => {
+      document.documentElement.classList.remove("wb-tree-open");
+      window.removeEventListener("resize", pageFit.current);
+    };
+  }, []);
   // the map point under the cursor while wheel-zooming, kept under the cursor after the zoom
   const zoomRef = useRef(1);
   const zoomAnchor = useRef<{ mx: number; my: number; cx: number; cy: number } | null>(null);
@@ -938,7 +960,7 @@ export function TechTree() {
 
   return (
     <WbPage active="blueprints" title={t.blueprint.name}>
-      <div className="wb-rt">
+      <div className="wb-rt" ref={pageRef}>
         <div className="wb-rt__bar">
           <span className="wb-rt__title">
             <RustLogo logo={t.blueprint.logo} size={26} />
