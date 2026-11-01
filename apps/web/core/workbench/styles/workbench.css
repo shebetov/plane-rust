@@ -1493,6 +1493,10 @@ html {
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
+}
+.wb-rt__canvas img {
+  -webkit-user-drag: none;
+  user-drag: none;
   background:
     linear-gradient(rgba(227, 217, 204, 0.035) 1px, transparent 1px) 0 0 / 32px 32px,
     linear-gradient(90deg, rgba(227, 217, 204, 0.035) 1px, transparent 1px) 0 0 / 32px 32px,

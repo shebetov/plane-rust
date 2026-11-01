@@ -1001,6 +1001,8 @@ export function TechTree() {
               }}
               onPointerDown={(e) => {
                 if (e.pointerType !== "mouse" || (e.target as HTMLElement).closest("button,a")) return;
+                e.preventDefault(); // a pan never starts a text selection
+                window.getSelection()?.removeAllRanges();
                 const el = scroller.current!;
                 drag.current = { x: e.clientX, y: e.clientY, sl: el.scrollLeft, st: el.scrollTop, moved: false };
               }}
