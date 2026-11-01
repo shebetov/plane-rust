@@ -52,7 +52,7 @@ export function MainMenu() {
   const next = active.find((b) => b.crafting > 0) ?? active[0];
 
   return (
-    <WbPage active="home" title="Main menu" bare>
+    <WbPage active="home" title="Home" bare>
       <div className={cn("wb-menu", `wb-scene--${banner}`)}>
         {/* Rust launcher art (theme/menu): fades in from black, drifts, and crossfades */}
         <div className="wb-menu__bg" aria-hidden>

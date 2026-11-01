@@ -13,7 +13,7 @@ import { PageHead } from "@/components/core/page-title";
 export type TWbTab = "home" | "blueprints" | "wipe" | "shop";
 
 const TABS: Array<{ key: TWbTab; label: string; path: string; Icon: typeof Home }> = [
-  { key: "home", label: "Main menu", path: "", Icon: Home },
+  { key: "home", label: "Home", path: "", Icon: Home },
   { key: "blueprints", label: "Blueprints", path: "wb/blueprints", Icon: Hammer },
   { key: "wipe", label: "Wipe", path: "wb/wipe", Icon: Box },
   { key: "shop", label: "Shop", path: "wb/shop", Icon: Store },
