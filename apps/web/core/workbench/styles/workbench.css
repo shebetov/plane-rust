@@ -1223,6 +1223,21 @@ html {
   gap: 12px;
   min-width: 0;
 }
+/* desktop: Home fits the window. A long deadline list scrolls inside its column, so the
+   wipe headline stays clear of the craft queue in the bottom right corner. */
+@media (min-width: 901px) {
+  .wb-menu {
+    height: 100%;
+    min-height: 600px;
+    grid-template-rows: minmax(160px, max-content) 1fr auto;
+  }
+  .wb-due {
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+    align-content: start;
+  }
+}
 .wb-due__panel {
   min-width: 0;
   box-shadow: inset 3px 0 0 var(--wb-amber);
