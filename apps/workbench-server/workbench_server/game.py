@@ -77,10 +77,8 @@ BANNERS = [
     _banner("medieval", "Medieval", 100, "Embers drifting through the dark"),
     _banner("gestures", "Gestures", 150, "Three survivors striking a pose"),
     _banner("exhibit", "Exhibit", 150, "A lounge full of mannequins"),
-    _banner("floors", "Floor & Ceiling", 80, "An empty room in every pattern"),
     _banner("sunburn", "Sunburn", 120, "A milk crate on a hot beach"),
     _banner("disco", "Disco Night", 180, "A packed dance floor under the lasers"),
-    _banner("plague", "Plague Doctor", 200, "The plague doctor among the sheep"),
     *(_banner(f"plague-{n}", f"Plague Doctor {r}", 150, "From the Plague Doctor pack")
       for n, r in ((1, "I"), (2, "II"), (3, "III"), (4, "IV"), (6, "VI"), (7, "VII"), (8, "VIII"))),
 ]
