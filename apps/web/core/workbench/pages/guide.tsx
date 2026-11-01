@@ -224,7 +224,7 @@ export function Guide() {
               items={[
                 "Sidebar: Home, Blueprints, Wipe, Shop, Guide. Then your Blueprints.",
                 "Top bar: wipe clock, cupboard alarm, scrap.",
-                "Craft queue, bottom right: your Crafting Items. Tap one to open it.",
+                "Craft queue, bottom right on Home: your Crafting Items. Tap one to open it.",
                 "Notices: ITEM CRAFTED, KIT COMPLETE, BLUEPRINT LEARNED, SCRAPPED.",
                 "Back after a break? You see what got crafted while you were away.",
                 "Sound is on, music is off. Switch both in the top bar.",

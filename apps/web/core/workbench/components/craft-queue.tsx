@@ -1,9 +1,9 @@
 /**
- * Rust's craft queue, bottom right on every screen: one slot per Item in Crafting (the
+ * Rust's craft queue, bottom right on Home only: one slot per Item in Crafting (the
  * Blueprint's icon, its key, and a health bar that drains as the Item decays).
  */
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { Link } from "react-router";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
@@ -15,10 +15,12 @@ const HP = [100, 65, 35, 12];
 
 export function CraftQueue() {
   const { workspaceSlug } = useParams();
+  const pathname = usePathname();
   const { data } = useWbQueue();
   const [open, setOpen] = useState(false);
   const items = data?.items ?? [];
-  if (!items.length || !workspaceSlug) return null;
+  const onHome = pathname.replace(/\/$/, "") === `/${workspaceSlug?.toString()}`;
+  if (!items.length || !workspaceSlug || !onHome) return null;
   const visible = open ? items : items.slice(0, SHOW);
   return (
     <div className={cn("wb-queue", open && "wb-queue--open")} aria-label="Craft queue">
