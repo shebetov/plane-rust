@@ -84,12 +84,6 @@ BANNERS = [
     *(_banner(f"plague-{n}", f"Plague Doctor {r}", 150, "From the Plague Doctor pack")
       for n, r in ((1, "I"), (2, "II"), (3, "III"), (4, "IV"), (6, "VI"), (7, "VII"), (8, "VIII"))),
 ]
-# The Glowing Wallpaper pack: each pattern lights out (glowing) and lights on.
-for _n, _motif in ((1, "Neon Doodles"), (2, "Neon Shapes"), (3, "Scrap Graffiti"), (4, "Star Map"),
-                   (5, "Cracked Plaster"), (6, "Mushrooms"), (7, "Tools"), (8, "Explosions"),
-                   (9, "Hopscotch"), (11, "Airdrop"), (12, "Stars"), (13, "Brickwork"), (14, "Fireflies")):
-    BANNERS.append(_banner(f"glow-{_n}", f"{_motif} (glow)", 60, "Glowing Wallpaper pack, lights out"))
-    BANNERS.append(_banner(f"glow-{_n}-lit", f"{_motif} (lit)", 60, "Glowing Wallpaper pack, lights on"))
 
 SHOP = [
     Offer("upkeep", "Upkeep: 2 days", "upkeep", 50, "Adds 2 days of Tool Cupboard protection to a Blueprint", True),
