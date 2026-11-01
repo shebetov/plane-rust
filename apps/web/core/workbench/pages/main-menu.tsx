@@ -34,6 +34,13 @@ export function MainMenu() {
   const now = useNow(30_000);
   const [report, setReport] = useState<number | null>(null);
 
+  // the scene fills the whole window: the sidebar and the header turn see-through while the menu is open
+  useEffect(() => {
+    const c = document.documentElement.classList;
+    c.add("wb-menu-open");
+    return () => c.remove("wb-menu-open");
+  }, []);
+
   useEffect(() => {
     if (data?.report_due !== undefined && data.report_due !== null) setReport(data.report_due);
   }, [data?.report_due]);

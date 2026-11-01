@@ -770,9 +770,10 @@ html {
   z-index: 1;
 }
 
-/* launcher art: the scene gradient above stays underneath as the fallback */
+/* launcher art: the scene gradient above stays underneath as the fallback. It is pinned to
+   the window, so it shows through the see-through sidebar and header too. */
 .wb-menu > .wb-menu__bg {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
@@ -807,8 +808,8 @@ html {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(11, 10, 8, 0.72), rgba(11, 10, 8, 0.1) 42%, rgba(11, 10, 8, 0.25)),
-    linear-gradient(rgba(11, 10, 8, 0.35), transparent 30%, transparent 55%, rgba(11, 10, 8, 0.92)),
+    linear-gradient(90deg, rgba(11, 10, 8, 0.3), rgba(11, 10, 8, 0.08) 42%, rgba(11, 10, 8, 0.22)),
+    linear-gradient(rgba(11, 10, 8, 0.25), transparent 30%, transparent 60%, rgba(11, 10, 8, 0.7)),
     radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.6));
 }
 @keyframes wb-bg-in {
@@ -1712,7 +1713,9 @@ html {
   width: 100%;
   height: 0;
 }
-.wb-colhd:hover,
+.wb-colhd:hover {
+  background: #23221c;
+}
 /* the Blueprint block: a select button (name, progress) with the Tool Cupboard under it */
 .wb-rt-root {
   padding: 0;
@@ -2734,6 +2737,18 @@ html {
     border-width: 1px 0 0 !important;
     border-radius: 0 !important;
   }
+}
+
+/* main menu: the sidebar, the top bar and the tab row become see-through panels, the same as
+   QUICK JOIN, so the scene behind them shows */
+html.wb-menu-open :has(> aside.group\/sidebar),
+html.wb-menu-open .wb-topnav,
+html.wb-menu-open :has(> div > nav.wb-tabs) {
+  background: var(--wb-panel) !important;
+}
+html.wb-menu-open aside.group\/sidebar,
+html.wb-menu-open aside.group\/sidebar .bg-surface-1 {
+  background: transparent !important;
 }
 
 /* ---------- loading screen (boot) ---------- */
