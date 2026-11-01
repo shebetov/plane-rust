@@ -2751,6 +2751,234 @@ html.wb-menu-open aside.group\/sidebar .bg-surface-1 {
   background: transparent !important;
 }
 
+/* ---------- guide (survival notes) ---------- */
+.wb-guide {
+  max-width: 1080px;
+}
+.wb-guide__hero {
+  margin-bottom: 18px;
+}
+.wb-guide__hero small {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--wb-next);
+}
+.wb-guide__hero h1 {
+  margin: 2px 0 4px;
+  font-size: clamp(28px, 4.4vw, 46px);
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #fff;
+}
+.wb-guide__hero p {
+  margin: 0;
+  font-size: 16px;
+  color: var(--wb-dim);
+}
+.wb-guide__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.wb-guide__wide {
+  grid-column: 1 / -1;
+}
+.wb-guide__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.wb-guide__note {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--wb-dim);
+}
+.wb-guide__lines,
+.wb-guide__tiplist {
+  margin: 0;
+  padding: 10px 14px 12px;
+  list-style: none;
+}
+.wb-guide__lines li {
+  position: relative;
+  padding: 4px 0 4px 16px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+.wb-guide__lines li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 11px;
+  width: 6px;
+  height: 6px;
+  background: var(--wb-line);
+}
+/* glossary and screen lists: icon, term, one line */
+.wb-guide__rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+}
+.wb-guide__rows li {
+  display: grid;
+  grid-template-columns: 30px 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-top: 1px solid rgba(227, 217, 204, 0.06);
+}
+.wb-guide__rows b {
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.wb-guide__rows span {
+  font-size: 14px;
+  color: var(--wb-dim);
+}
+.wb-guide .wb-panel:not(.wb-guide__wide) .wb-guide__rows {
+  grid-template-columns: 1fr;
+}
+/* the loop: four steps with arrows between */
+.wb-guide__loop {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+  margin: 0;
+  padding: 16px 14px 4px;
+  list-style: none;
+  counter-reset: step;
+}
+.wb-guide__loop li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--wb-slot);
+}
+.wb-guide__loop li:not(:last-child)::after {
+  content: "▶";
+  position: absolute;
+  right: -17px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--wb-amber);
+}
+/* item life: a state chip and one line */
+.wb-guide__life,
+.wb-guide__grades {
+  margin: 0;
+  padding: 8px 14px;
+  list-style: none;
+}
+.wb-guide__life li {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 15px;
+}
+.wb-guide__state {
+  padding: 2px 6px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  background: var(--wb-slot);
+}
+.wb-guide__state--locked {
+  color: var(--wb-dim);
+}
+.wb-guide__state--todo {
+  color: var(--wb-ink);
+}
+.wb-guide__state--crafting {
+  color: var(--wb-amber);
+}
+.wb-guide__state--crafted {
+  color: var(--wb-next);
+}
+.wb-guide__state--scrapped {
+  color: var(--wb-bad);
+}
+.wb-guide__grades li {
+  display: grid;
+  grid-template-columns: 28px 110px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 15px;
+}
+.wb-guide__grades span {
+  color: var(--wb-dim);
+}
+.wb-guide__grades em {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-style: normal;
+  font-family: var(--wb-f-mono);
+  color: var(--wb-amber);
+}
+.wb-guide__tiplist {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  counter-reset: tip;
+}
+.wb-guide__tiplist li {
+  position: relative;
+  padding: 10px 12px 10px 40px;
+  font-size: 15px;
+  line-height: 1.3;
+  background: var(--wb-slot);
+  counter-increment: tip;
+}
+.wb-guide__tiplist li::before {
+  content: counter(tip);
+  position: absolute;
+  left: 12px;
+  top: 9px;
+  font-family: var(--wb-f-mono);
+  font-weight: 700;
+  color: var(--wb-amber);
+}
+@media (max-width: 767px) {
+  .wb-guide__grid,
+  .wb-guide__rows,
+  .wb-guide__tiplist {
+    grid-template-columns: 1fr;
+  }
+  .wb-guide__rows li {
+    grid-template-columns: 30px 96px minmax(0, 1fr);
+  }
+  .wb-guide__loop {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .wb-guide__loop li::after {
+    display: none;
+  }
+}
+
 /* ---------- loading screen (boot) ---------- */
 .wb-load {
   --t: 0s;

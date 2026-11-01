@@ -34,3 +34,9 @@ Prereq (once): `./setup.sh` — generates `apps/api/.env` from `.env.example`.
 - Teardown: `docker compose -f docker-compose-test.yml down -v`
 
 See `apps/api/tests/RUNNING_TESTS.md` for the full walkthrough and troubleshooting; see `apps/api/tests/TESTING_GUIDE.md` for test conventions and fixtures.
+
+## Workbench
+
+- **Keep the Guide up to date.** `apps/web/core/workbench/pages/guide.tsx` (the GUIDE tab) explains
+  every Workbench feature. When a Workbench feature, mechanic, number or screen changes, update the
+  Guide in the same change. Keep its style: short lines, simple words, Rust lore.

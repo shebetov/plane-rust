@@ -18,6 +18,7 @@ export const extendedRoutes: RouteConfigEntry[] = [
         route(":workspaceSlug/wb/tree/:projectId", `${WB}/tree.tsx`),
         route(":workspaceSlug/wb/shop", `${WB}/shop.tsx`),
         route(":workspaceSlug/wb/wipe", `${WB}/wipe.tsx`),
+        route(":workspaceSlug/wb/guide", `${WB}/guide.tsx`),
       ]),
     ]),
   ]),
