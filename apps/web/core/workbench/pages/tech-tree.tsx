@@ -1004,8 +1004,14 @@ export function TechTree() {
                 e.preventDefault(); // a pan never starts a text selection
                 window.getSelection()?.removeAllRanges();
                 const el = scroller.current!;
+                // keep the pan going (and the browser's drag-scroll out) when the mouse leaves the map
+                el.setPointerCapture(e.pointerId);
                 drag.current = { x: e.clientX, y: e.clientY, sl: el.scrollLeft, st: el.scrollTop, moved: false };
               }}
+              onMouseDown={(e) => {
+                if (!(e.target as HTMLElement).closest("button,a,input,textarea")) e.preventDefault();
+              }}
+              onDragStart={(e) => e.preventDefault()}
               onPointerMove={(e) => {
                 const d = drag.current;
                 if (!d || e.buttons !== 1) return;
@@ -1013,7 +1019,11 @@ export function TechTree() {
                 scroller.current!.scrollLeft = d.sl - (e.clientX - d.x);
                 scroller.current!.scrollTop = d.st - (e.clientY - d.y);
               }}
-              onPointerUp={() => setTimeout(() => (drag.current = null), 0)}
+              onPointerUp={(e) => {
+                if (scroller.current?.hasPointerCapture(e.pointerId))
+                  scroller.current.releasePointerCapture(e.pointerId);
+                setTimeout(() => (drag.current = null), 0);
+              }}
             >
               <div className="wb-rt__size" style={{ width: lay.width * zoom + 48, height: lay.height * zoom + 48 }}>
                 <div
