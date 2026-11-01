@@ -764,10 +764,24 @@ export function TechTree() {
     return out;
   }, [lay, hover, sel, all]);
 
-  if (error) return <WbPage title="Tech tree">{<p className="wb-muted">This Blueprint has no tree.</p>}</WbPage>;
+  if (error)
+    return (
+      <WbPage active="blueprints" title="Research tree">
+        {<p className="wb-muted">This Blueprint has no tree.</p>}
+      </WbPage>
+    );
   if (itemsError)
-    return <WbPage title="Tech tree">{<p className="wb-muted">Couldn't load the Items. Try again.</p>}</WbPage>;
-  if (!t || !lay || !pid) return <WbPage title="Tech tree">{<p className="wb-muted">Loading the tree…</p>}</WbPage>;
+    return (
+      <WbPage active="blueprints" title="Research tree">
+        {<p className="wb-muted">Couldn't load the Items. Try again.</p>}
+      </WbPage>
+    );
+  if (!t || !lay || !pid)
+    return (
+      <WbPage active="blueprints" title="Research tree">
+        {<p className="wb-muted">Loading the tree…</p>}
+      </WbPage>
+    );
 
   const bpHome = home?.blueprints.find((b) => b.id === pid);
   const total = nodesIn.filter((n) => n.group !== "cancelled").length;
@@ -911,7 +925,7 @@ export function TechTree() {
   const isLit = (id: string) => !lit || lit.has(id);
 
   return (
-    <WbPage title={t.blueprint.name}>
+    <WbPage active="blueprints" title={t.blueprint.name}>
       <div className="wb-rt">
         <div className="wb-rt__bar">
           <span className="wb-rt__title">

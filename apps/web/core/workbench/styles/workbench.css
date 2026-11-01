@@ -576,36 +576,84 @@ html {
 }
 
 /* launcher tabs in the page header */
-.wb-tabs {
+/* the page header: the screen's name as a stencil title */
+.wb-pagehd {
   display: flex;
-  gap: 2px;
-  height: 100%;
-  align-items: stretch;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.wb-tab {
-  display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 0 14px;
-  font-size: 14px;
+  gap: 8px;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--wb-ink);
+}
+.wb-pagehd svg {
+  flex: none;
+  color: var(--wb-dim);
+}
+.wb-pagehd__crumb {
+  color: var(--wb-dim);
+}
+.wb-pagehd i {
+  font-style: normal;
+  color: var(--wb-faint);
+}
+.wb-pagehd b {
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* the sidebar: Workbench's screens first, as Rust launcher tabs, then Plane's entries in the same type */
+.wb-sidenav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(227, 217, 204, 0.08);
+}
+.wb-sidenav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--wb-dim);
-  white-space: nowrap;
 }
-.wb-tab:hover {
+.wb-sidenav__item:hover {
   color: var(--wb-ink);
   background: var(--wb-slot);
 }
-.wb-tab--on {
+.wb-sidenav__item--on,
+.wb-sidenav__item--on:hover {
   color: #fff;
   background: var(--wb-red);
 }
-.wb-tab--on:hover {
-  background: #b9472f;
+.wb-sideitem {
+  border-radius: 0 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--wb-dim);
+}
+.wb-sideitem p,
+.wb-sideitem span {
+  font-weight: 700 !important;
+}
+.wb-sideitem:hover {
+  color: var(--wb-ink);
+}
+.wb-sideitem.wb-sideitem--on {
+  color: #fff;
+  background: var(--wb-red) !important;
+}
+.wb-sideitem--on svg {
+  color: #fff;
 }
 
 /* panels and buttons */
@@ -2758,15 +2806,6 @@ html {
   }
 }
 @media (max-width: 640px) {
-  .wb-tab span {
-    display: none;
-  }
-  .wb-tab--on span {
-    display: inline;
-  }
-  .wb-tab {
-    padding: 0 11px;
-  }
   .wb-sb__head {
     display: none;
   }
@@ -2946,7 +2985,7 @@ html {
    QUICK JOIN, so the scene behind them shows */
 html.wb-menu-open :has(> aside.group\/sidebar),
 html.wb-menu-open .wb-topnav,
-html.wb-menu-open :has(> div > nav.wb-tabs) {
+html.wb-menu-open :has(> div > .wb-pagehd) {
   background: var(--wb-panel) !important;
 }
 html.wb-menu-open aside.group\/sidebar,

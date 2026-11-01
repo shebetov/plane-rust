@@ -17,7 +17,9 @@ export function SidebarNavItem(props: TSidebarNavItem) {
   return (
     <div
       className={cn(
-        "group relative flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-md px-2 py-1 outline-none",
+        // Workbench: wb-sideitem gives every sidebar entry the Rust tab look (workbench.css)
+        "wb-sideitem group relative flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-md px-2 py-1 outline-none",
+        isActive && "wb-sideitem--on",
         {
           "!bg-layer-transparent-active text-primary": isActive,
           "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-active": !isActive,

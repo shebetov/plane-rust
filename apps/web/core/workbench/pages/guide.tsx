@@ -222,6 +222,7 @@ export function Guide() {
           <Panel title={<Title icon="supply.signal">On every screen</Title>}>
             <Lines
               items={[
+                "Sidebar: Home, Blueprints, Wipe, Shop, Guide. Then your Blueprints.",
                 "Top bar: wipe clock, cupboard alarm, scrap.",
                 "Craft queue, bottom right: your Crafting Items. Tap one to open it.",
                 "Notices: ITEM CRAFTED, KIT COMPLETE, BLUEPRINT LEARNED, SCRAPPED.",

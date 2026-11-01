@@ -27,6 +27,7 @@ import {
   usePersonalNavigationPreferences,
   useWorkspaceNavigationPreferences,
 } from "@/hooks/use-navigation-preferences";
+import { WbSideNav } from "@/workbench/components/side-nav";
 import { SidebarItemBase } from "./sidebar-item";
 
 export const SidebarMenuItems = observer(function SidebarMenuItems() {
@@ -50,7 +51,8 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
 
   // Filter static navigation items based on personal preferences
   const filteredStaticNavigationItems = useMemo(() => {
-    const items = [...WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS_LINKS];
+    // Workbench: Home is the first of its own screens (WbSideNav), so Plane's is dropped
+    const items = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS_LINKS.filter((i) => i.key !== "home");
     const personalItems: Array<(typeof items)[0] & { sort_order: number }> = [];
 
     // Add personal items based on preferences with their sort_order
@@ -96,6 +98,7 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
 
   return (
     <>
+      <WbSideNav />
       <div className="flex flex-col gap-0.5">
         {filteredStaticNavigationItems.map((item, _index) => (
           // oxlint-disable-next-line react/no-array-index-key
