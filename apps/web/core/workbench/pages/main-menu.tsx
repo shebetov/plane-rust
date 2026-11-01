@@ -3,7 +3,7 @@
  * with the active Blueprints, a news feed of crafted Items and the wipe headline.
  * After a wipe, the wipe report opens once.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Play } from "lucide-react";
 import { Link } from "react-router";
 import { useParams } from "next/navigation";
@@ -13,6 +13,8 @@ import { currentWipe, leftText } from "../lib/wipe";
 import { RustItem, RustLogo } from "../components/rust-icon";
 import { useNow } from "../components/top-bar";
 import { DustCanvas } from "../components/dust";
+import { MenuBackdrop } from "../components/menu-backdrop";
+import { DEFAULT_SCENES, bannerSlug } from "../lib/scenes";
 import { WipeReportModal } from "./wipe-report";
 import { Panel, WbPage, ago } from "./shell";
 
@@ -36,7 +38,8 @@ export function MainMenu() {
     if (data?.report_due !== undefined && data.report_due !== null) setReport(data.report_due);
   }, [data?.report_due]);
 
-  const banner = state?.equipped.banner?.replace("banner-", "") ?? "default";
+  const banner = state?.equipped.banner ? bannerSlug(state.equipped.banner) : "default";
+  const scenes = useMemo(() => (banner === "default" ? DEFAULT_SCENES : [banner]), [banner]);
   const wipe = now ? currentWipe(now) : null;
   const active = (data?.blueprints ?? []).filter((b) => b.open > 0);
   const next = active.find((b) => b.crafting > 0) ?? active[0];
@@ -46,8 +49,7 @@ export function MainMenu() {
       <div className={cn("wb-menu", `wb-scene--${banner}`)}>
         {/* Rust launcher art (theme/menu): fades in from black, drifts, and crossfades */}
         <div className="wb-menu__bg" aria-hidden>
-          <i className="wb-menu__bg1" />
-          <i className="wb-menu__bg2" />
+          <MenuBackdrop key={banner} scenes={scenes} />
           <span className="wb-menu__fog" />
           <DustCanvas className="wb-menu__dust" />
         </div>

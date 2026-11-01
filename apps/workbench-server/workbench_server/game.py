@@ -57,11 +57,43 @@ class Offer:
     repeat: bool = False
 
 
+def _banner(slug: str, name: str, cost: int, desc: str) -> Offer:
+    return Offer(f"banner-{slug}", f"Banner: {name}", "banner", cost, desc)
+
+
+# Main-menu banners: the picture is theme/menu/bg/<slug>.jpg (the web app maps the id).
+BANNERS = [
+    _banner("snow", "Arctic Base", 120, "Arctic pack art, cold and blue"),
+    _banner("desert", "Desert Outpost", 120, "An adobe compound behind barbed wire"),
+    _banner("night", "Night Raid", 160, "The plague doctor under a full moon"),
+    _banner("adobe-house", "Adobe House", 120, "A sand-brick base among the palms"),
+    _banner("jungle-house", "Jungle Temple", 160, "A stone base deep in the jungle"),
+    _banner("jungle", "Jungle", 100, "Leaves and light, out of focus"),
+    _banner("frontier", "Frontier", 150, "Barrels, bear heads and the frontier decor pack"),
+    _banner("frontiersman", "Frontiersman", 180, "A hunter in a dark pine forest"),
+    _banner("nomad", "Nomad", 200, "A lone wanderer in a dust storm"),
+    _banner("abyss", "Abyss", 200, "Three divers from the Abyss pack"),
+    _banner("abyss-deep", "Abyss Deep", 80, "Dark water, nothing else"),
+    _banner("medieval", "Medieval", 100, "Embers drifting through the dark"),
+    _banner("gestures", "Gestures", 150, "Three survivors striking a pose"),
+    _banner("exhibit", "Exhibit", 150, "A lounge full of mannequins"),
+    _banner("floors", "Floor & Ceiling", 80, "An empty room in every pattern"),
+    _banner("sunburn", "Sunburn", 120, "A milk crate on a hot beach"),
+    _banner("disco", "Disco Night", 180, "A packed dance floor under the lasers"),
+    _banner("plague", "Plague Doctor", 200, "The plague doctor among the sheep"),
+    *(_banner(f"plague-{n}", f"Plague Doctor {r}", 150, "From the Plague Doctor pack")
+      for n, r in ((1, "I"), (2, "II"), (3, "III"), (4, "IV"), (6, "VI"), (7, "VII"), (8, "VIII"))),
+]
+# The Glowing Wallpaper pack: each pattern lights out (glowing) and lights on.
+for _n, _motif in ((1, "Neon Doodles"), (2, "Neon Shapes"), (3, "Scrap Graffiti"), (4, "Star Map"),
+                   (5, "Cracked Plaster"), (6, "Mushrooms"), (7, "Tools"), (8, "Explosions"),
+                   (9, "Hopscotch"), (11, "Airdrop"), (12, "Stars"), (13, "Brickwork"), (14, "Fireflies")):
+    BANNERS.append(_banner(f"glow-{_n}", f"{_motif} (glow)", 60, "Glowing Wallpaper pack, lights out"))
+    BANNERS.append(_banner(f"glow-{_n}-lit", f"{_motif} (lit)", 60, "Glowing Wallpaper pack, lights on"))
+
 SHOP = [
     Offer("upkeep", "Upkeep: 2 days", "upkeep", 50, "Adds 2 days of Tool Cupboard protection to a Blueprint", True),
-    Offer("banner-snow", "Banner: Arctic Base", "banner", 120, "A cold, white main-menu scene"),
-    Offer("banner-desert", "Banner: Desert Outpost", "banner", 120, "Sand, heat haze and rusted metal"),
-    Offer("banner-night", "Banner: Night Raid", "banner", 160, "Moonlight over a sleeping base"),
+    *BANNERS,
     Offer("frame-gold", "Notice frame: Gold", "frame", 200, "Crafted notices in gold trim"),
     Offer("frame-red", "Notice frame: Raid Red", "frame", 150, "Crafted notices in alarm red"),
     Offer("badge-survivor", "Title: Wipe Survivor", "badge", 300, "Shown next to your name on the main menu"),

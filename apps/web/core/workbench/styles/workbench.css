@@ -718,6 +718,8 @@ html {
 }
 
 /* ---------- scenes (main-menu banners; the shop sells more) ---------- */
+/* the default gradient is every menu's fallback while (or if) the pictures don't load */
+.wb-menu,
 .wb-scene--default {
   background:
     linear-gradient(rgba(14, 13, 11, 0.35), rgba(14, 13, 11, 0.85)),
@@ -776,42 +778,28 @@ html {
   overflow: hidden;
   pointer-events: none;
 }
-.wb-menu__bg i {
+.wb-menu__art {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: wb-bg-in 1.8s ease-out 0.1s forwards;
+}
+/* each picture drifts on its own and crossfades in when it is on */
+.wb-menu__art i {
   position: absolute;
   inset: -3%;
-  background-size: cover;
-  background-position: 62% 30%;
+  background: var(--wb-bg) 62% 30% / cover no-repeat;
   opacity: 0;
-  animation:
-    wb-bg-in 1.8s ease-out 0.1s forwards,
-    wb-bg-drift 12s ease-in-out infinite alternate;
+  transition: opacity 2.5s ease-in-out;
+  animation: wb-bg-drift 12s ease-in-out infinite alternate;
 }
-.wb-menu__bg1 {
-  background-image: url("/workbench/theme/menu/main-1.jpg");
+.wb-menu__art i.is-on {
+  opacity: 1;
 }
-.wb-menu__bg i.wb-menu__bg2 {
-  background-image: url("/workbench/theme/menu/main-2.jpg");
-  animation:
-    wb-bg-swap 20s ease-in-out 5s infinite,
-    wb-bg-drift 12s ease-in-out infinite alternate-reverse;
-}
-.wb-scene--snow .wb-menu__bg1 {
-  background-image: url("/workbench/theme/menu/snow.jpg");
-}
-.wb-scene--desert .wb-menu__bg1 {
-  background-image: url("/workbench/theme/menu/desert.jpg");
-}
-.wb-scene--night .wb-menu__bg1 {
-  background-image: url("/workbench/theme/menu/night.jpg");
-}
-/* the shop banners are small pictures: soften them; only the default scene crossfades */
-.wb-scene--snow .wb-menu__bg1,
-.wb-scene--desert .wb-menu__bg1,
-.wb-scene--night .wb-menu__bg1 {
-  filter: blur(3px) saturate(1.1);
-}
-.wb-menu:not(.wb-scene--default) .wb-menu__bg2 {
-  display: none;
+@media (orientation: portrait) {
+  .wb-menu__art i {
+    background-image: var(--wb-bg-tall, var(--wb-bg));
+  }
 }
 /* Rust's menu shade: dark on the left (news), the bottom (hero) and the corners */
 .wb-menu__bg::after {
@@ -834,19 +822,6 @@ html {
   }
   to {
     transform: scale(1.14) translate3d(-3%, -1.5%, 0);
-  }
-}
-@keyframes wb-bg-swap {
-  0%,
-  40% {
-    opacity: 0;
-  }
-  50%,
-  90% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
   }
 }
 /* smoke rolling across the scene, and dust floating up through it */
@@ -2337,7 +2312,7 @@ html {
 
 /* ---------- shop (vending machine) ---------- */
 .wb-shop {
-  max-width: 760px;
+  max-width: 980px;
 }
 .wb-shop__top {
   display: flex;
@@ -2441,10 +2416,76 @@ html {
   color: #f2ece2;
   text-shadow: 0 1px 2px #000;
 }
-.wb-shop__swatch {
-  width: 62px;
-  height: 40px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+/* banners: a grid of picture cards */
+.wb-shop__head--banners {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 22px;
+}
+.wb-shop__banners {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+.wb-shop__card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: rgba(227, 217, 204, 0.05);
+  border-bottom: 3px solid transparent;
+}
+.wb-shop__card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: rgba(227, 217, 204, 0.08);
+}
+.wb-shop__card--owned {
+  border-bottom-color: var(--wb-line);
+}
+.wb-shop__card--on {
+  border-bottom-color: var(--wb-amber);
+  box-shadow: inset 0 0 0 1px rgba(255, 196, 92, 0.35);
+}
+.wb-shop__card-name {
+  padding: 8px 10px 4px;
+  min-width: 0;
+}
+.wb-shop__card-name b {
+  display: block;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wb-shop__card-name small {
+  display: block;
+  font-size: 12px;
+  color: var(--wb-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wb-shop__card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding: 6px 10px 10px;
+}
+.wb-shop__price {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--wb-f-mono);
+  font-size: 14px;
+  color: #f2ece2;
+}
+.wb-shop__card-foot .wb-btn {
+  padding: 6px 14px;
 }
 .wb-shop__frame {
   width: 60px;
@@ -2549,7 +2590,13 @@ html {
   .wb-report__stats {
     grid-template-columns: repeat(2, 1fr);
   }
-  .wb-shop__head {
+  .wb-shop__head:not(.wb-shop__head--banners) {
+    display: none;
+  }
+  .wb-shop__banners {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .wb-shop__card-name small {
     display: none;
   }
   .wb-shop__row {
