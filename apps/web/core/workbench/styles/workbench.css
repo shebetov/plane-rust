@@ -1633,420 +1633,580 @@ html {
   overflow: visible;
   pointer-events: none;
 }
-.wb-edge {
+/* ---------- wires: down, across, down into what they lead to ---------- */
+.wb-wire path {
   fill: none;
-  stroke: rgba(138, 154, 91, 0.5);
-  stroke-width: 2;
+  stroke: #6a6963;
+  stroke-width: 3;
+  stroke-dasharray: 6 5;
   transition:
     opacity 0.15s,
     stroke 0.15s;
 }
-.wb-edge--bus {
-  stroke: #8a9a5b;
-}
-.wb-edge--done {
+.wb-wire--done path {
   stroke: #7c9040;
+  stroke-width: 3.5;
+  stroke-dasharray: none;
 }
-.wb-edge--extra {
+/* done wires carry a spark down to the goal; the next step's wire charges */
+.wb-wire path.wb-wire__spark {
+  stroke: #e4f3b0;
+  stroke-linecap: round;
+  stroke-dasharray: 3 46;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 2px #c8e07a);
+  animation: wb-flow 2.4s linear infinite;
+}
+.wb-wire--charge path {
+  stroke: #8d9a6a;
+  animation: wb-flow 3.2s linear infinite;
+}
+.wb-wire--extra path {
   stroke: #9b8655;
-  stroke-dasharray: 6 5;
+  stroke-width: 2;
 }
-.wb-edge--extra.wb-edge--done {
+.wb-wire--extra.wb-wire--done path {
   stroke: #7c9040;
   stroke-dasharray: none;
 }
-.wb-edge--lit {
-  stroke: var(--wb-amber) !important;
-  stroke-width: 3;
+.wb-wire--lit path:not(.wb-wire__spark) {
+  stroke: var(--wb-amber);
   opacity: 1;
 }
-.wb-edge--off {
-  opacity: 0.15;
+.wb-wire--off {
+  opacity: 0.14;
+}
+@keyframes wb-flow {
+  to {
+    stroke-dashoffset: -49;
+  }
 }
 #wb-arrow path {
   fill: #b49a5e;
 }
 
-/* the Blueprint and the column heads (Kits or tags) */
-.wb-rt-root,
-.wb-colhd {
+/* ---------- tiles: a square with the icon, the name below (Rust's tech tree) ---------- */
+.wb-tl {
   position: absolute;
-  top: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px 10px 10px;
-  text-align: left;
-  background: #1b1a16;
-  box-shadow: inset 0 0 0 1px rgba(227, 217, 204, 0.12);
+  gap: 6px;
+  padding: 0;
+  color: var(--wb-ink);
   transition: opacity 0.15s;
 }
-.wb-rt-root {
-  left: 0;
-  background: #1e1d18;
-  box-shadow:
-    inset 0 0 0 1px rgba(185, 211, 106, 0.35),
-    0 4px 18px rgba(0, 0, 0, 0.4);
-}
-.wb-rt-root small {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--wb-next);
-}
-.wb-rt-root__icon,
-.wb-colhd__icon {
+.wb-tl__sq {
   position: relative;
-  display: flex;
+  display: grid;
+  place-items: center;
   flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 70px;
-  height: 70px;
-  background: #11110f;
-  box-shadow: inset 0 0 0 1px rgba(227, 217, 204, 0.1);
-}
-.wb-rt__cols {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 0;
-}
-.wb-colhd:hover {
-  background: #23221c;
-}
-/* the Blueprint block: a select button (name, progress) with the Tool Cupboard under it */
-.wb-rt-root {
-  padding: 0;
-  gap: 0;
-  align-items: stretch;
-}
-.wb-rt-root__main {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  padding: 10px 12px 10px 10px;
-  text-align: left;
-  background: transparent;
-  transition: background 0.1s;
-}
-.wb-rt-root__main:hover {
-  background: #23221c;
-}
-/* the Tool Cupboard under the Blueprint name: the same upkeep screen as its own window */
-.wb-rt-root {
-  flex-direction: column;
-}
-/* scaled down: the whole screen at half size */
-.wb-rt-root .wb-tc {
-  zoom: 0.55;
-  padding: 14px 16px 16px;
-  cursor: default;
-  box-shadow: inset 0 1px 0 rgba(227, 217, 204, 0.1);
-  background: rgba(0, 0, 0, 0.18);
-}
-.wb-rt-root .wb-tc__hd small {
-  color: var(--wb-dim);
-  letter-spacing: 0.1em;
-  font-size: 17px;
-}
-/* bigger text, so it stays readable at this scale */
-.wb-rt-root .wb-tc__hd b {
-  font-size: 28px;
-}
-.wb-rt-root .wb-tc__info {
-  font-size: 21px;
-  line-height: 1.35;
-}
-.wb-rt-root .wb-tc__k,
-.wb-rt-root .wb-tc__state {
-  font-size: 23px;
-}
-.wb-rt-root .wb-tc__res i,
-.wb-rt-root .wb-tc__slot i {
-  font-size: 17px;
-}
-.wb-rt-root .wb-tc__btns .wb-btn {
-  font-size: 21px;
-  padding: 12px 22px;
-}
-.wb-colhd__body {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-  flex: 1;
-}
-.wb-colhd__name {
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.15;
-  color: var(--wb-ink);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.wb-colhd__bar {
-  display: block;
-  height: 4px;
-  background: rgba(0, 0, 0, 0.55);
-}
-.wb-colhd__bar i {
-  display: block;
-  height: 100%;
-  background: var(--wb-line);
-}
-.wb-colhd__counts {
-  display: flex;
-  gap: 8px;
-  font-family: var(--wb-f-mono);
-  font-size: 11px;
-  color: var(--wb-dim);
-}
-.wb-colhd__crafting {
-  color: var(--wb-amber);
-}
-.wb-colhd__learned {
-  color: var(--wb-next);
-  text-transform: uppercase;
-}
-.wb-colhd__dot {
-  display: block;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--wb-faint);
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.35);
-}
-.wb-colhd__lock {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--wb-ink);
-  background: rgba(0, 0, 0, 0.45);
-}
-.wb-colhd--crafted {
-  background: #1a2010;
-  box-shadow: inset 0 0 0 2px #7c9040;
-}
-.wb-colhd--crafted .wb-colhd__name {
-  color: var(--wb-next);
-}
-.wb-colhd--crafting {
-  box-shadow:
-    inset 0 2px 0 var(--wb-amber),
-    inset 0 0 0 1px rgba(227, 217, 204, 0.12);
-}
-.wb-colhd--locked .wb-colhd__name,
-.wb-colhd--empty .wb-colhd__name {
-  color: var(--wb-dim);
-}
-.wb-colhd--sel {
-  box-shadow:
-    inset 0 0 0 2px var(--wb-amber),
-    0 0 16px rgba(224, 164, 60, 0.25) !important;
-}
-
-/* one Item = one research block */
-.wb-node {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 7px 9px 7px 10px;
-  text-align: left;
-  color: var(--wb-ink);
-  background: #1e1d19;
-  box-shadow:
-    inset 0 0 0 1px rgba(227, 217, 204, 0.13),
-    0 2px 8px rgba(0, 0, 0, 0.35);
+  background: #131312;
+  box-shadow: inset 0 0 0 2px #7a7973;
   transition:
-    opacity 0.15s,
-    transform 0.1s,
-    background 0.1s;
+    box-shadow 0.12s,
+    transform 0.12s;
 }
-.wb-node:hover {
-  background: #26241e;
+.wb-tl__sq img {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+}
+.wb-tl:hover .wb-tl__sq {
   transform: translateY(-1px);
+  box-shadow: inset 0 0 0 2px #b9b4a8;
 }
-.wb-node__top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 20px;
-}
-.wb-node__key {
-  font-family: var(--wb-f-mono);
-  font-size: 11px;
-  color: var(--wb-faint);
-}
-.wb-node__grade {
-  display: inline-flex;
-  margin-left: auto;
-  opacity: 0.9;
-}
-.wb-node__name {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.2;
+.wb-tl__lb {
+  width: 100%;
+  padding: 0 3px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-transform: uppercase;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-shadow: 0 1px 2px #000;
 }
-.wb-node__meta {
+.wb-tl--kit .wb-tl__lb {
+  font-size: 12.5px;
+}
+.wb-tl__grade {
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: auto;
-  min-height: 14px;
-  font-size: 11px;
-  color: var(--wb-dim);
+  opacity: 0.95;
 }
-.wb-node__tag {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--wb-faint);
-}
-.wb-node__comp {
+.wb-tl__cnt {
+  position: absolute;
+  left: 4px;
+  top: 2px;
   font-family: var(--wb-f-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: #f2ece2;
+  text-shadow: 0 1px 2px #000;
 }
-.wb-node__due {
-  padding: 0 5px;
-  background: rgba(227, 217, 204, 0.07);
+.wb-tl__tick {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: #14170c;
+  background: #7c9040;
 }
-.wb-node__due--late {
-  color: var(--wb-red-ink);
-  background: rgba(163, 60, 42, 0.55);
+.wb-tl__lock {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  color: #ece6da;
 }
-.wb-node__due--soon {
-  color: #f2cb83;
-  background: rgba(224, 164, 60, 0.18);
+.wb-tl__tag {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  height: 5px;
 }
-.wb-node__lock,
-.wb-node__ready {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 0 5px;
-  height: 16px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.wb-node__lock {
-  color: #f0c3b6;
-  background: rgba(163, 60, 42, 0.4);
-}
-.wb-node__ready {
-  color: #1d2410;
-  background: var(--wb-next);
-}
-.wb-node__hp {
-  display: block;
-  width: 46px;
-  height: 4px;
-  margin-left: auto;
+/* crafting: a hatched bar crawling along the foot; it drains as the Item decays */
+.wb-tl__hp {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  height: 7px;
   background: rgba(0, 0, 0, 0.6);
 }
-.wb-node__hp i {
+.wb-tl__hp i,
+.wb-tl__hp--crawl {
   display: block;
   height: 100%;
-  background: var(--wb-amber);
+  background: repeating-linear-gradient(-45deg, #d8cfbf 0 4px, rgba(0, 0, 0, 0.6) 4px 8px);
+  background-size: 11.3px 100%;
+  animation: wb-crawl 1.2s linear infinite;
 }
-.wb-node--started {
-  background: #26211a;
-  box-shadow:
-    inset 3px 0 0 var(--wb-amber),
-    inset 0 0 0 1px rgba(224, 164, 60, 0.35),
-    0 2px 10px rgba(0, 0, 0, 0.4);
+@keyframes wb-crawl {
+  to {
+    background-position: 11.3px 0;
+  }
 }
-.wb-node--ready {
-  box-shadow:
-    inset 0 0 0 1px rgba(185, 211, 106, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.35);
+/* states (each has a shape cue, not only a colour) */
+.wb-tl--done .wb-tl__sq {
+  background: #4f5a2a;
+  box-shadow: inset 0 0 0 2px #7c9040;
 }
-.wb-node--backlog .wb-node__name {
-  color: #cdc4b6;
+.wb-tl--ready .wb-tl__sq {
+  box-shadow: inset 0 0 0 2px #d8cfbf;
 }
-.wb-node--blocked {
-  background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.18) 0 6px, transparent 6px 12px), #191814;
+.wb-tl--locked .wb-tl__sq,
+.wb-tl--backlog .wb-tl__sq {
+  background: rgba(40, 39, 36, 0.55);
+  box-shadow: none;
 }
-.wb-node--blocked .wb-node__name {
+.wb-tl--backlog .wb-tl__sq {
+  outline: 2px dashed #5f5e59;
+  outline-offset: -2px;
+}
+.wb-tl--locked .wb-tl__sq > img,
+.wb-tl--backlog .wb-tl__sq > img {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+.wb-tl--locked .wb-tl__lb,
+.wb-tl--backlog .wb-tl__lb {
   color: var(--wb-dim);
 }
-.wb-node--completed {
-  background: #192010;
-  box-shadow: inset 0 0 0 1px rgba(124, 144, 64, 0.7);
+.wb-tl--decay1 .wb-tl__sq,
+.wb-tl--decay2 .wb-tl__sq,
+.wb-tl--decay3 .wb-tl__sq {
+  background: var(--wb-rust), #131312;
+  box-shadow: inset 0 0 0 2px #a3542a;
 }
-.wb-node--completed .wb-node__name {
-  color: #a8b98a;
-}
-.wb-node--decay1 .wb-node__hp i,
-.wb-node--decay2 .wb-node__hp i,
-.wb-node--decay3 .wb-node__hp i {
+.wb-tl--decay1 .wb-tl__hp i,
+.wb-tl--decay2 .wb-tl__hp i,
+.wb-tl--decay3 .wb-tl__hp i {
   background: var(--wb-bad);
+  animation: none;
 }
-.wb-node--decay2,
-.wb-node--decay3 {
-  background-image: var(--wb-rust);
+.wb-tl--sel .wb-tl__sq {
+  outline: 2px solid #f2ece2;
+  outline-offset: 3px;
 }
-.wb-node--sel {
-  z-index: 2;
+.wb-tl--dim {
+  opacity: 0.3;
+}
+.wb-tl--target .wb-tl__sq {
   box-shadow:
-    inset 0 0 0 2px var(--wb-amber),
-    0 0 20px rgba(224, 164, 60, 0.35) !important;
+    inset 0 0 0 2px var(--wb-next),
+    0 0 18px rgba(185, 211, 106, 0.45);
 }
-.wb-node--dim {
-  opacity: 0.25;
+/* the next step: Rust's corner-bracket frame, breathing */
+.wb-tl__brk {
+  position: absolute;
+  inset: -7px;
+  pointer-events: none;
+  --c: var(--wb-next);
+  background:
+    linear-gradient(var(--c), var(--c)) left top / 12px 2px,
+    linear-gradient(var(--c), var(--c)) left top / 2px 12px,
+    linear-gradient(var(--c), var(--c)) right top / 12px 2px,
+    linear-gradient(var(--c), var(--c)) right top / 2px 12px,
+    linear-gradient(var(--c), var(--c)) left bottom / 12px 2px,
+    linear-gradient(var(--c), var(--c)) left bottom / 2px 12px,
+    linear-gradient(var(--c), var(--c)) right bottom / 12px 2px,
+    linear-gradient(var(--c), var(--c)) right bottom / 2px 12px;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 3px rgba(185, 211, 106, 0.55));
+  animation: wb-breathe 3s ease-in-out infinite;
 }
-/* link handle: drag onto another block */
-.wb-node__port {
+@keyframes wb-breathe {
+  50% {
+    opacity: 0.4;
+  }
+}
+/* drag from the foot of a tile onto the Item it unlocks */
+.wb-tl__port {
   position: absolute;
   left: 50%;
-  bottom: -7px;
+  bottom: -6px;
   width: 14px;
   height: 14px;
   margin-left: -7px;
   border-radius: 50%;
   background: #12110f;
-  box-shadow: inset 0 0 0 2px #8a9a5b;
+  box-shadow: inset 0 0 0 2px var(--wb-next);
   cursor: crosshair;
-  touch-action: none;
   opacity: 0;
   transition: opacity 0.12s;
 }
-.wb-node:hover .wb-node__port,
-.wb-node--sel .wb-node__port {
+.wb-tl:hover .wb-tl__port,
+.wb-tl--sel .wb-tl__port {
   opacity: 1;
 }
-.wb-node__port:hover {
-  background: var(--wb-next);
-}
-@media (hover: none) {
-  .wb-node__port {
-    opacity: 0.85;
-  }
-}
-.wb-node--target {
-  z-index: 3;
-  box-shadow:
-    inset 0 0 0 2px var(--wb-next),
-    0 0 18px rgba(185, 211, 106, 0.45) !important;
-}
-.wb-edge--drag {
+.wb-wire--drag {
+  fill: none;
   stroke: var(--wb-next);
   stroke-width: 2.5;
   stroke-dasharray: 5 4;
 }
+
+/* ---------- a crate: Items with no links, as slots ---------- */
+.wb-crate {
+  position: absolute;
+  background: rgba(10, 10, 9, 0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(227, 217, 204, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.35);
+  transition: opacity 0.15s;
+}
+.wb-crate__hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--wb-dim);
+  background: rgba(227, 217, 204, 0.06);
+}
+.wb-crate__hd button {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--wb-next);
+}
+.wb-crate__more {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--wb-dim);
+}
+.wb-crate__more span {
+  display: grid;
+  place-items: center;
+  font-family: var(--wb-f-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--wb-ink);
+  background: var(--wb-slot);
+}
+.wb-crate__more:hover span {
+  background: rgba(170, 160, 143, 0.28);
+}
+.wb-crate__more small {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.wb-tl--slot .wb-tl__sq {
+  background-color: rgba(170, 160, 143, 0.12);
+}
+
+/* ---------- the goal: the Blueprint at the foot of its tree, with its Tool Cupboard ---------- */
+.wb-goal {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 10, 9, 0.92);
+  box-shadow:
+    inset 0 0 0 2px #a69e8f,
+    inset 0 0 0 5px rgba(10, 10, 9, 0.9),
+    inset 0 0 0 6px rgba(166, 158, 143, 0.4),
+    0 6px 22px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.15s;
+}
+.wb-goal--learned {
+  box-shadow:
+    inset 0 0 0 2px #7c9040,
+    inset 0 0 0 5px rgba(10, 10, 9, 0.9),
+    inset 0 0 0 6px rgba(124, 144, 64, 0.5),
+    0 6px 22px rgba(0, 0, 0, 0.5);
+}
+.wb-goal--late {
+  box-shadow:
+    inset 0 0 0 2px var(--wb-bad),
+    inset 0 0 0 5px rgba(10, 10, 9, 0.9),
+    0 6px 22px rgba(0, 0, 0, 0.5);
+}
+.wb-goal--sel {
+  outline: 2px solid #f2ece2;
+  outline-offset: 3px;
+}
+.wb-goal__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  text-align: left;
+}
+.wb-goal__main:hover {
+  background: rgba(227, 217, 204, 0.04);
+}
+.wb-goal__ic {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 70px;
+  height: 70px;
+  background: var(--wb-slot);
+}
+.wb-goal__tx {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.wb-goal__tx small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--wb-dim);
+}
+.wb-goal--learned .wb-goal__tx small {
+  color: var(--wb-next);
+}
+.wb-goal__tx b {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.wb-goal__pips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+}
+.wb-goal__pips i {
+  width: 14px;
+  height: 10px;
+  border: 1.5px solid var(--wb-ink);
+  opacity: 0.85;
+}
+.wb-goal__pips i.wb-goal__pip--done {
+  background: var(--wb-ink);
+}
+.wb-goal__pips i.wb-goal__pip--active {
+  background: repeating-linear-gradient(-45deg, var(--wb-ink) 0 2px, transparent 2px 4px);
+}
+.wb-goal__pips em {
+  margin-left: 5px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-transform: uppercase;
+  color: var(--wb-dim);
+}
+.wb-goal__pips .wb-bar {
+  flex: 1;
+  min-width: 80px;
+}
+/* the Tool Cupboard under the goal: the same upkeep screen as its own window, scaled down */
+.wb-goal .wb-tc {
+  zoom: 0.55;
+  margin: 0 11px 11px;
+  padding: 14px 16px 16px;
+  cursor: default;
+  box-shadow: inset 0 1px 0 rgba(227, 217, 204, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+.wb-goal .wb-tc__hd small {
+  color: var(--wb-dim);
+  letter-spacing: 0.1em;
+  font-size: 17px;
+}
+/* bigger text, so it stays readable at this scale */
+.wb-goal .wb-tc__hd b {
+  font-size: 28px;
+}
+.wb-goal .wb-tc__info {
+  font-size: 21px;
+  line-height: 1.35;
+}
+.wb-goal .wb-tc__k,
+.wb-goal .wb-tc__state {
+  font-size: 23px;
+}
+.wb-goal .wb-tc__res i,
+.wb-goal .wb-tc__slot i {
+  font-size: 17px;
+}
+.wb-goal .wb-tc__btns .wb-btn {
+  font-size: 21px;
+  padding: 12px 22px;
+}
+.wb-bar {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.45);
+}
+.wb-bar i {
+  display: block;
+  height: 100%;
+  background: var(--wb-green);
+}
+
+/* ---------- the Blueprint switcher, beside the tree ---------- */
+.wb-rt__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 10px;
+}
+.wb-rail {
+  flex: none;
+  width: 250px;
+  overflow-y: auto;
+  padding: 4px 0 10px;
+  background: var(--wb-panel);
+  box-shadow: inset 0 0 0 1px rgba(227, 217, 204, 0.08);
+}
+.wb-rail__dom h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding: 10px 12px 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wb-dim);
+}
+.wb-rail__row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 10px 5px 9px;
+  border-left: 3px solid transparent;
+}
+.wb-rail__row:hover {
+  background: rgba(227, 217, 204, 0.05);
+}
+.wb-rail__row--on {
+  background: rgba(227, 217, 204, 0.1);
+  border-left-color: var(--wb-ink);
+}
+.wb-rail__row--empty {
+  opacity: 0.5;
+}
+.wb-rail__ic {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  background: var(--wb-slot);
+}
+.wb-rail__t {
+  flex: 1;
+  min-width: 0;
+}
+.wb-rail__t b {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wb-rail__t small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-family: var(--wb-f-mono);
+  font-size: 10.5px;
+  color: var(--wb-dim);
+}
+.wb-rail__bar {
+  width: 54px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.5);
+}
+.wb-rail__bar i {
+  display: block;
+  height: 100%;
+  background: var(--wb-green);
+}
+.wb-rail__tc {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
+  background: var(--wb-faint);
+}
+.wb-rail__tc--protected {
+  background: var(--wb-green);
+}
+.wb-rail__tc--due {
+  background: var(--wb-amber);
+}
+.wb-rail__tc--decaying {
+  background: var(--wb-bad);
+}
+.wb-rail__tc--learned {
+  background: var(--wb-next);
+}
+
 .wb-rt__hint,
 .wb-rt__flash {
   position: absolute;
@@ -2292,6 +2452,42 @@ html {
   .wb-rt__tools .wb-tags__link {
     display: none;
   }
+  .wb-rt__body {
+    flex-direction: column;
+    gap: 0;
+  }
+  .wb-rail {
+    display: flex;
+    width: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 6px;
+    gap: 2px;
+    scrollbar-width: none;
+  }
+  .wb-rail__dom {
+    display: contents;
+  }
+  .wb-rail__dom h3 {
+    display: none;
+  }
+  .wb-rail__row {
+    flex: none;
+    max-width: 190px;
+    padding: 6px 8px;
+    border-left: 0;
+    border-bottom: 3px solid transparent;
+  }
+  .wb-rail__row--on {
+    border-bottom-color: var(--wb-ink);
+  }
+  .wb-rail__row--empty {
+    display: none;
+  }
+  .wb-rail__ic {
+    width: 30px;
+    height: 30px;
+  }
   /* the research panel becomes a bottom sheet */
   .wb-rp {
     position: fixed;
@@ -2307,9 +2503,16 @@ html {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .wb-node,
-  .wb-edge {
+  .wb-tl,
+  .wb-wire path,
+  .wb-tl__brk,
+  .wb-tl__hp i,
+  .wb-tl__hp--crawl {
     transition: none;
+    animation: none !important;
+  }
+  .wb-wire path.wb-wire__spark {
+    display: none;
   }
 }
 

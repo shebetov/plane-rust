@@ -251,6 +251,7 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
     async def home(_):
         await world.ensure()
         ledger = db.ledger()
+        bmeta = db.get("meta", {}).get("blueprints", {})
         bps = []
         for pid, p in world.projects.items():
             items = world.items.get(pid, [])
@@ -261,7 +262,8 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
                         "open": world.open_count(pid), "done": done, "total": len(live),
                         "crafting": sum(1 for i in items if world.groups[pid].get(i["state"]) == "started"),
                         "last_craft": lc.isoformat() if lc else None, "tc": world.tc(pid),
-                        "updated_at": max((i.get("updated_at") or "" for i in items), default=None)})
+                        "updated_at": max((i.get("updated_at") or "" for i in items), default=None),
+                        "domain": bmeta.get(pid, {}).get("domain")})
         bps.sort(key=lambda b: (b["open"] == 0, -(game.parse_dt(b["updated_at"]) or now()).timestamp()))
         news = [r for r in ledger if r["grp"] == "completed"][:12]
         for r in news:

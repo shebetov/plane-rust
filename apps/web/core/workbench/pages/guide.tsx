@@ -190,7 +190,7 @@ export function Guide() {
                 "All Items crafted: LEARNED. No upkeep needed.",
               ]}
             />
-            <p className="wb-guide__note">Find it in the Blueprint block on the research tree.</p>
+            <p className="wb-guide__note">Find it under the goal, at the foot of the research tree.</p>
           </Panel>
 
           <Panel title={<Title icon="bandage">Decay</Title>}>
@@ -207,11 +207,13 @@ export function Guide() {
           <Panel title={<Title icon="research.table">Research tree</Title>}>
             <Lines
               items={[
-                "Open a Blueprint to see its tree.",
-                "On top: the Blueprint and its cupboard. Below: one column per Kit.",
-                "Each block is one Item. READY: start it. NEEDS: wait for another Item.",
-                "Click a block to light its path, start it or craft it.",
-                "Drag the handle under a block onto the Item it unlocks.",
+                "Open a Blueprint to see its tree. Switch Blueprints from the list beside it.",
+                "The goal sits at the bottom. Kits stand on it. Items stand on their Kit.",
+                "Follow the wires down. Each one leads to what it unlocks.",
+                "Items with no links wait in a crate above their Kit.",
+                "Bright frame: ready. Padlock: needs another Item first. Tick: crafted.",
+                "The breathing corner frame marks your next craft.",
+                "Drag the handle under a tile onto the Item it unlocks.",
                 "Crafted Items hide. Turn on SHOW CRAFTED to see them.",
               ]}
             />

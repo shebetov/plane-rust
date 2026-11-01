@@ -41,6 +41,8 @@ export type THomeBlueprint = {
   last_craft: string | null;
   updated_at: string | null;
   tc: TTc;
+  /** the goal's domain (Health, Self, …), from the import */
+  domain?: string | null;
 };
 
 export type THome = {

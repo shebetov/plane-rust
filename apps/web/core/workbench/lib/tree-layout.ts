@@ -1,9 +1,13 @@
+/* oxlint-disable unicorn/no-array-sort -- every sort here is on a fresh copy (the app targets ES2022, no toSorted) */
 /**
- * Lays out a Blueprint's research tree: the Blueprint at the top, a column per Kit (or per
- * tag when the Blueprint has no Kits), and inside each column the Items as a real tree:
- * an Item hangs under the Item it requires (or the Item it is a Component of), indented,
- * with "tree" lines; any further requirements become curved "extra" lines, also across
- * columns. Positions are plain numbers so the page can draw nodes and an SVG of edges.
+ * Lays out a Blueprint as a path to its goal, after the Thesys map and Rust's tech tree:
+ * the Blueprint (the goal) at the bottom, its Kits in a row above it, and each Kit's Items
+ * above the Kit. Whatever leads to something sits above it and is wired down into it:
+ * - an Item required by another Item (or a Component of it) hangs above that Item;
+ * - an Item that leads to nothing else in its Kit is wired into the Kit;
+ * - a Kit that needs another Kit has that Kit above it; the rest are wired into the goal.
+ * Items with no links at all fill a crate (a grid of slots) wired into their Kit. Any other
+ * requirement is drawn as a dashed arrow. Positions are plain numbers in map pixels.
  */
 export type TNodeIn = {
   id: string;
@@ -19,75 +23,133 @@ export type TNodeIn = {
   components: number;
   blockers: string[]; // Items this one requires (ids in this Blueprint)
 };
-export type TColIn = { key: string; label: string; logo?: unknown; color?: string | null };
+/** A Kit, a tag group, or (`plain`) the one group of a Blueprint with neither: no tile of its own */
+export type TColIn = {
+  key: string;
+  label: string;
+  logo?: unknown;
+  color?: string | null;
+  needs?: string[];
+  plain?: boolean;
+};
 
-export type TPlaced = TNodeIn & {
+export type TState = "done" | "active" | "ready" | "locked" | "backlog";
+
+export type TItemTile = TNodeIn & {
+  kind: "item";
   col: string;
   x: number;
   y: number;
-  treeParent: string | null;
-  blocked: boolean; // a requirement isn't crafted yet
-  ready: boolean; // nothing in the way and not started
-  dependents: string[];
+  state: TState;
+  next: boolean;
   componentsDone: number;
 };
-export type TCol = TColIn & {
+export type TKitTile = TColIn & {
+  kind: "kit";
+  id: string;
   x: number;
-  width: number;
+  y: number;
+  state: TState;
   done: number;
   total: number;
   crafting: number;
   hidden: number;
-  state: "crafted" | "crafting" | "to-craft" | "locked" | "empty";
 };
-export type TEdge = {
+export type TCrate = {
+  key: string;
+  col: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  cols: number;
+  items: string[];
+  more: number;
+  open: boolean;
+};
+export type TWire = {
   id: string;
   from: string;
   to: string;
-  kind: "trunk" | "tree" | "extra";
   d: string;
+  kind: "tree" | "extra";
   done: boolean;
+  charge: boolean;
 };
 export type TLayout = {
-  cols: TCol[];
-  nodes: Map<string, TPlaced>;
-  edges: TEdge[];
+  items: Map<string, TItemTile>;
+  kits: TKitTile[];
+  crates: TCrate[];
+  wires: TWire[];
+  goal: { x: number; y: number; w: number; h: number };
   width: number;
   height: number;
-  root: { x: number; y: number; w: number; h: number };
-  busY: number;
-  headerY: number;
+  /** the next Item to craft in this Blueprint */
+  next: string | null;
 };
 
-export const NODE_W = 236;
-export const NODE_H = 86;
-export const HEADER_W = 236;
-export const HEADER_H = 110;
-const IND = 26;
-const GAP_Y = 12;
-const COL_GAP = 64;
-/** the Blueprint block (its name with the Tool Cupboard under it); the page passes its measured height */
+export const GOAL = "goal";
+export const CELL_W = 112;
+export const ITEM_SQ = 62;
+const CELL_H = 124; // tile, then a label of up to three lines
+export const KIT_W = 124;
+export const KIT_SQ = 84;
+const KIT_H = 140;
+const V_GAP = 40; // from a label's foot down to the next tile
+const H_GAP = 18;
+const CRATE_PAD = 10;
+const CRATE_HD = 28;
+const PAD = 24;
+/** the Blueprint card (its name with the Tool Cupboard under it); the page passes its measured height */
 export const ROOT_W = 374;
 export const ROOT_W_NARROW = 330;
-const MAX_INDENT = 4;
 
 const CLOSED = new Set(["completed", "cancelled"]);
 const RANK: Record<string, number> = { started: 0, unstarted: 1, backlog: 2, completed: 3, cancelled: 4 };
+const GRADE: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
+const STATE_RANK: Record<TState, number> = { active: 0, ready: 1, locked: 2, backlog: 3, done: 4 };
+
+type LNode = {
+  key: string;
+  kind: "goal" | "kit" | "item" | "crate";
+  w: number;
+  h: number;
+  kids: LNode[];
+  span: number;
+  tall: number;
+  x: number;
+  y: number;
+  cx: number;
+};
+
+function leaf(key: string, kind: LNode["kind"], w: number, h: number): LNode {
+  return {
+    key,
+    kind,
+    w,
+    h,
+    kids: [],
+    span: 0,
+    tall: 0,
+    x: 0,
+    y: 0,
+    cx: 0,
+  };
+}
 
 export function layoutTree(
   all: TNodeIn[],
   colsIn: TColIn[],
   columnOf: (n: TNodeIn) => string,
   showCrafted: boolean,
-  root: { w: number; h: number }
+  root: { w: number; h: number },
+  openCrates: Set<string>,
+  narrow = false
 ): TLayout {
-  const { w: rootW, h: rootH } = root;
-  const BUS_Y = rootH + 30;
-  const HEADER_Y = BUS_Y + 30;
-  const ITEMS_Y = HEADER_Y + HEADER_H + 26;
   const byId = new Map(all.map((n) => [n.id, n]));
   const visible = all.filter((n) => n.group !== "cancelled" && (showCrafted || n.group !== "completed"));
   const vis = new Set(visible.map((n) => n.id));
+  const colOf = new Map(all.map((n) => [n.id, columnOf(n)]));
 
   // requirements inside this Blueprint, and who each Item unlocks
   const req = new Map<string, string[]>();
@@ -97,225 +159,273 @@ export function layoutTree(
     req.set(n.id, bs);
     for (const b of bs) dependents.set(b, [...(dependents.get(b) ?? []), n.id]);
   }
-  // depth along requirements (longest path), safe against cycles
-  const depth = new Map<string, number>();
-  const visiting = new Set<string>();
-  const depthOf = (id: string): number => {
-    if (depth.has(id)) return depth.get(id)!;
-    if (visiting.has(id)) return 0;
-    visiting.add(id);
-    const d = Math.max(-1, ...(req.get(id) ?? []).map(depthOf)) + 1;
-    visiting.delete(id);
-    depth.set(id, d);
-    return d;
-  };
-  all.forEach((n) => depthOf(n.id));
-
-  const colKey = new Map(visible.map((n) => [n.id, columnOf(n)]));
   const isBlocked = (id: string) => (req.get(id) ?? []).some((b) => !CLOSED.has(byId.get(b)!.group));
-  // in a column: Crafting first, then what can be crafted now, blocked Items last
+  const stateOf = (n: TNodeIn): TState =>
+    n.group === "completed"
+      ? "done"
+      : n.group === "started"
+        ? "active"
+        : isBlocked(n.id)
+          ? "locked"
+          : n.group === "backlog"
+            ? "backlog"
+            : "ready";
   const order = (a: TNodeIn, b: TNodeIn) =>
-    (RANK[a.group] ?? 5) - (RANK[b.group] ?? 5) || Number(isBlocked(a.id)) - Number(isBlocked(b.id)) || a.seq - b.seq;
+    STATE_RANK[stateOf(a)] - STATE_RANK[stateOf(b)] ||
+    (GRADE[a.priority] ?? 4) - (GRADE[b.priority] ?? 4) ||
+    (RANK[a.group] ?? 5) - (RANK[b.group] ?? 5) ||
+    a.seq - b.seq;
 
-  // tree parent: the Item it is a Component of, else its deepest requirement, in the same column
+  // each visible Item's tree parent: the Item it is a Component of, else an Item that requires
+  // it, in the same group; else the group itself
   const treeParent = new Map<string, string | null>();
-  for (const n of visible) {
-    const col = colKey.get(n.id);
-    let p: string | null = null;
-    if (n.parent && vis.has(n.parent) && colKey.get(n.parent) === col) p = n.parent;
-    else {
-      const same = (req.get(n.id) ?? []).filter((b) => vis.has(b) && colKey.get(b) === col);
-      same.sort((a, b) => (depth.get(b) ?? 0) - (depth.get(a) ?? 0));
-      p = same[0] ?? null;
+  const leadsBack = (from: string, to: string) => {
+    let cur: string | null | undefined = from;
+    for (let i = 0; cur && i < 500; i++) {
+      if (cur === to) return true;
+      cur = treeParent.get(cur);
     }
-    treeParent.set(n.id, p);
+    return false;
+  };
+  for (const n of [...visible].sort(order)) {
+    const col = colOf.get(n.id);
+    const cands = [
+      ...(n.parent ? [n.parent] : []),
+      ...[...(dependents.get(n.id) ?? [])].sort((a, b) => order(byId.get(a)!, byId.get(b)!)),
+    ];
+    const p = cands.find((c) => vis.has(c) && colOf.get(c) === col && !leadsBack(c, n.id));
+    treeParent.set(n.id, p ?? null);
   }
-  const kids = new Map<string | null, TNodeIn[]>();
+  const itemKids = new Map<string, TNodeIn[]>();
   for (const n of visible) {
-    const p = treeParent.get(n.id) ?? null;
-    kids.set(p, [...(kids.get(p) ?? []), n]);
+    const p = treeParent.get(n.id);
+    if (p) itemKids.set(p, [...(itemKids.get(p) ?? []), n]);
   }
-  kids.forEach((list) => list.sort(order));
+  itemKids.forEach((list) => list.sort(order));
 
-  // columns, ordered so a column comes after the ones its Items require
-  const colIds = colsIn.map((c) => c.key);
-  const colNeeds = new Map<string, Set<string>>(colIds.map((k) => [k, new Set()]));
-  for (const n of all) {
-    const c = columnOf(n);
-    if (CLOSED.has(n.group)) continue;
-    for (const b of req.get(n.id) ?? []) {
-      const bn = byId.get(b)!;
-      const bc = columnOf(bn);
-      if (bc !== c && !CLOSED.has(bn.group)) colNeeds.get(c)?.add(bc);
-    }
-  }
+  // groups (Kits): stats and state
+  const colKeys = new Set(colsIn.map((c) => c.key));
   const stats = new Map(
-    colIds.map((k) => {
-      const its = all.filter((n) => n.group !== "cancelled" && columnOf(n) === k);
+    colsIn.map((c) => {
+      const its = all.filter((n) => n.group !== "cancelled" && colOf.get(n.id) === c.key);
       const done = its.filter((n) => n.group === "completed").length;
-      const crafting = its.filter((n) => n.group === "started").length;
-      const hidden = showCrafted ? 0 : done;
-      return [k, { done, total: its.length, crafting, hidden }];
+      return [
+        c.key,
+        {
+          done,
+          total: its.length,
+          crafting: its.filter((n) => n.group === "started").length,
+          hidden: showCrafted ? 0 : done,
+          open: its.filter((n) => !CLOSED.has(n.group)),
+        },
+      ];
     })
   );
-  const colState = (k: string): TCol["state"] => {
-    const s = stats.get(k)!;
-    if (!s.total) return "empty";
-    if (s.done === s.total) return "crafted";
-    if (s.crafting) return "crafting";
-    if ([...(colNeeds.get(k) ?? [])].length) return "locked";
-    return "to-craft";
+  const needsOf = (c: TColIn) => (c.needs ?? []).filter((k) => colKeys.has(k) && k !== c.key);
+  const kitState = (c: TColIn): TState => {
+    const s = stats.get(c.key)!;
+    if (s.total && s.done === s.total) return "done";
+    if (s.crafting) return "active";
+    if (needsOf(c).some((k) => stats.get(k)!.done < stats.get(k)!.total)) return "locked";
+    if (s.open.some((n) => stateOf(n) === "ready")) return "ready";
+    return "backlog";
   };
-  const STATE_RANK = { crafting: 0, "to-craft": 1, locked: 2, empty: 3, crafted: 4 };
-  const placedCols: string[] = [];
-  const pending = colsIn.slice();
-  // oxlint-disable-next-line unicorn/no-array-sort -- sorting a copy
-  pending.sort((a, b) => STATE_RANK[colState(a.key)] - STATE_RANK[colState(b.key)]);
-  while (pending.length) {
-    const i = pending.findIndex((c) =>
-      [...(colNeeds.get(c.key) ?? [])].every((d) => placedCols.includes(d) || !colIds.includes(d))
-    );
-    const [c] = pending.splice(i < 0 ? 0 : i, 1);
-    placedCols.push(c.key);
-  }
 
-  // place: depth-first inside each column, so a chain stays together
-  const nodes = new Map<string, TPlaced>();
-  const seqs = new Map<string, string[]>();
-  const indent = new Map<string, number>();
-  const seen = new Set<string>();
-  for (const k of placedCols) {
-    const seqList: string[] = [];
-    const walk = (n: TNodeIn, lvl: number) => {
-      if (seen.has(n.id)) return;
-      seen.add(n.id);
-      seqList.push(n.id);
-      indent.set(n.id, Math.min(lvl, MAX_INDENT));
-      for (const c of kids.get(n.id) ?? []) walk(c, lvl + 1);
-    };
-    const roots = (kids.get(null) ?? []).filter((n) => colKey.get(n.id) === k);
-    roots.forEach((r) => walk(r, 0));
-    // anything only reachable through a cycle
-    visible.filter((n) => colKey.get(n.id) === k && !seen.has(n.id)).forEach((n) => walk(n, 0));
-    seqs.set(k, seqList);
-  }
+  // the next Item: the first one Crafting with nothing in its way, else the best one ready
+  const cands = visible.filter((n) => n.group === "started" && !isBlocked(n.id));
+  const next = (cands.length ? cands : visible.filter((n) => stateOf(n) === "ready")).sort(order)[0]?.id ?? null;
 
-  const cols: TCol[] = [];
-  let x = 0;
-  for (const k of placedCols) {
-    const c = colsIn.find((cc) => cc.key === k)!;
-    const maxInd = Math.max(0, ...(seqs.get(k) ?? []).map((id) => indent.get(id) ?? 0));
-    const width = Math.max(HEADER_W, NODE_W + IND * (maxInd + 1));
-    cols.push({ ...c, x, width, ...stats.get(k)!, state: colState(k) });
-    x += width + COL_GAP;
-  }
-  const colX = new Map(cols.map((c) => [c.key, c.x]));
-
-  const ys = new Map<string, number>();
-  for (const [k, list] of seqs) {
-    let y = ITEMS_Y;
-    for (const id of list) {
-      ys.set(id, y);
-      y += NODE_H + GAP_Y;
-    }
-    void k;
-  }
-  // an Item sits below the Items it requires in other columns (push the rest down)
-  for (let pass = 0; pass < 8; pass++) {
-    let moved = false;
-    for (const [k, list] of seqs) {
-      list.forEach((id, i) => {
-        const need = Math.max(
-          0,
-          ...(req.get(id) ?? [])
-            .filter((b) => vis.has(b) && colKey.get(b) !== k)
-            .map((b) => (ys.get(b) ?? 0) + NODE_H + 20)
-        );
-        const delta = need - (ys.get(id) ?? 0);
-        if (delta > 0) {
-          for (const rest of list.slice(i)) ys.set(rest, (ys.get(rest) ?? 0) + delta);
-          moved = true;
-        }
+  // ---- the layout tree
+  const crateCols = narrow ? 3 : 4;
+  const crates: TCrate[] = [];
+  const itemNode = (n: TNodeIn): LNode => {
+    const ln = leaf(n.id, "item", CELL_W, CELL_H);
+    ln.kids = (itemKids.get(n.id) ?? []).map(itemNode);
+    return ln;
+  };
+  const groupKids = (c: TColIn): LNode[] => {
+    const tops = visible.filter((n) => colOf.get(n.id) === c.key && !treeParent.get(n.id)).sort(order);
+    const branches = tops.filter((n) => itemKids.has(n.id) || (req.get(n.id) ?? []).length);
+    const lone = tops.filter((n) => !branches.includes(n));
+    const kids = branches.map(itemNode);
+    if (lone.length >= 3) {
+      const open = openCrates.has(c.key);
+      const cols = Math.min(crateCols, lone.length);
+      const cap = cols * 2;
+      const shown = open || lone.length <= cap ? lone : lone.slice(0, cap - 1);
+      const slots = shown.length + (lone.length > cap ? 1 : 0);
+      const rows = Math.ceil(slots / cols);
+      const w = cols * CELL_W + CRATE_PAD * 2;
+      const h = CRATE_HD + rows * CELL_H + CRATE_PAD;
+      kids.push(leaf(`crate:${c.key}`, "crate", w, h));
+      crates.push({
+        key: `crate:${c.key}`,
+        col: c.key,
+        x: 0,
+        y: 0,
+        w,
+        h,
+        cols,
+        items: shown.map((n) => n.id),
+        more: lone.length - shown.length,
+        open,
       });
+    } else kids.push(...lone.map(itemNode));
+    return kids;
+  };
+
+  // Kits: a Kit hangs above the first Kit that needs it; the rest go straight into the goal
+  const sortedCols = [...colsIn].sort(
+    (a, b) => STATE_RANK[kitState(a)] - STATE_RANK[kitState(b)] || colsIn.indexOf(a) - colsIn.indexOf(b)
+  );
+  const kitParent = new Map<string, string>();
+  const kitLeadsBack = (from: string, to: string) => {
+    let cur: string | undefined = from;
+    for (let i = 0; cur && i < 200; i++) {
+      if (cur === to) return true;
+      cur = kitParent.get(cur);
     }
-    if (!moved) break;
+    return false;
+  };
+  for (const c of sortedCols)
+    for (const d of sortedCols)
+      if (!kitParent.has(c.key) && needsOf(d).includes(c.key) && !kitLeadsBack(d.key, c.key))
+        kitParent.set(c.key, d.key);
+  const kitNode = (c: TColIn): LNode => {
+    const ln = leaf(c.key, "kit", KIT_W, KIT_H);
+    ln.kids = [...sortedCols.filter((k) => kitParent.get(k.key) === c.key).map(kitNode), ...groupKids(c)];
+    return ln;
+  };
+  const goal = leaf(GOAL, "goal", root.w, root.h);
+  for (const c of sortedCols) {
+    if (kitParent.has(c.key)) continue;
+    if (c.plain) goal.kids.push(...groupKids(c));
+    else goal.kids.push(kitNode(c));
   }
 
-  for (const n of visible) {
-    const k = colKey.get(n.id)!;
-    const blocked = isBlocked(n.id);
+  // ---- measure (widths and heights of every subtree), then place from the goal up
+  const measure = (n: LNode) => {
+    n.kids.forEach(measure);
+    const kidsW = n.kids.reduce((s, k) => s + k.span, 0) + H_GAP * Math.max(0, n.kids.length - 1);
+    n.span = Math.max(n.w, kidsW);
+    n.tall = n.h + (n.kids.length ? V_GAP + Math.max(...n.kids.map((k) => k.tall)) : 0);
+  };
+  const place = (n: LNode, left: number, bottom: number) => {
+    n.y = bottom - n.h;
+    const kidsW = n.kids.reduce((s, k) => s + k.span, 0) + H_GAP * Math.max(0, n.kids.length - 1);
+    let x = left + (n.span - kidsW) / 2;
+    for (const k of n.kids) {
+      place(k, x, n.y - V_GAP);
+      x += k.span + H_GAP;
+    }
+    const mid = n.kids.length ? (n.kids[0].cx + n.kids[n.kids.length - 1].cx) / 2 : left + n.span / 2;
+    n.cx = Math.min(left + n.span - n.w / 2, Math.max(left + n.w / 2, mid));
+    n.x = n.cx - n.w / 2;
+  };
+  measure(goal);
+  place(goal, PAD, PAD + goal.tall);
+
+  // ---- tiles, crates and tree wires
+  const items = new Map<string, TItemTile>();
+  const kits: TKitTile[] = [];
+  const wires: TWire[] = [];
+  const crateByKey = new Map(crates.map((c) => [c.key, c]));
+  const doneOf = (ln: LNode) =>
+    ln.kind === "item"
+      ? byId.get(ln.key)?.group === "completed"
+      : ln.kind === "kit"
+        ? kitState(colsIn.find((c) => c.key === ln.key)!) === "done"
+        : false;
+  const itemTile = (n: TNodeIn, x: number, y: number) => {
     const comps = all.filter((c) => c.parent === n.id && c.group !== "cancelled");
-    nodes.set(n.id, {
+    items.set(n.id, {
       ...n,
-      col: k,
-      x: (colX.get(k) ?? 0) + IND * ((indent.get(n.id) ?? 0) + 1),
-      y: ys.get(n.id) ?? ITEMS_Y,
-      treeParent: treeParent.get(n.id) ?? null,
-      blocked,
-      ready: !blocked && n.group === "unstarted",
-      dependents: dependents.get(n.id) ?? [],
+      kind: "item",
+      col: colOf.get(n.id)!,
+      x,
+      y,
+      state: stateOf(n),
+      next: n.id === next,
       componentsDone: comps.filter((c) => c.group === "completed").length,
     });
-  }
-
-  // edges
-  const edges: TEdge[] = [];
-  const mid = (p: TPlaced) => p.y + NODE_H / 2;
-  for (const c of cols) {
-    const roots = (seqs.get(c.key) ?? []).map((id) => nodes.get(id)!).filter((p) => !p.treeParent);
-    const tx = c.x + 13;
-    for (const r of roots)
-      edges.push({
-        id: `t-${r.id}`,
-        from: c.key,
-        to: r.id,
-        kind: "trunk",
-        d: `M${tx} ${HEADER_Y + HEADER_H}V${mid(r)}H${r.x}`,
-        done: r.group === "completed",
+  };
+  const walk = (n: LNode) => {
+    if (n.kind === "item") itemTile(byId.get(n.key)!, n.x, n.y);
+    else if (n.kind === "kit") {
+      const c = colsIn.find((cc) => cc.key === n.key)!;
+      const s = stats.get(c.key)!;
+      kits.push({
+        ...c,
+        kind: "kit",
+        id: c.key,
+        x: n.x,
+        y: n.y,
+        state: kitState(c),
+        done: s.done,
+        total: s.total,
+        crafting: s.crafting,
+        hidden: s.hidden,
       });
-  }
-  for (const p of nodes.values()) {
-    if (p.treeParent) {
-      const t = nodes.get(p.treeParent)!;
-      edges.push({
-        id: `p-${p.id}`,
-        from: t.id,
-        to: p.id,
+    } else if (n.kind === "crate") {
+      const cr = crateByKey.get(n.key)!;
+      Object.assign(cr, { x: n.x, y: n.y });
+      cr.items.forEach((id, i) =>
+        itemTile(
+          byId.get(id)!,
+          n.x + CRATE_PAD + (i % cr.cols) * CELL_W,
+          n.y + CRATE_HD + Math.floor(i / cr.cols) * CELL_H
+        )
+      );
+    }
+    for (const k of n.kids) {
+      const fromY = k.y + k.h - (k.kind === "crate" ? 0 : 4);
+      const toY = n.y;
+      const nextHere = k.kind === "item" && k.key === next;
+      wires.push({
+        id: `w-${k.key}`,
+        from: k.key,
+        to: n.key,
         kind: "tree",
-        d: `M${t.x + 13} ${t.y + NODE_H}V${mid(p)}H${p.x}`,
-        done: t.group === "completed",
+        d: `M${k.cx} ${fromY}V${toY - V_GAP / 2}H${n.cx}V${toY}`,
+        done: doneOf(k),
+        charge: nextHere,
       });
+      walk(k);
     }
+  };
+  walk(goal);
+
+  // requirements that aren't tree lines: dashed arrows, across Kits too
+  for (const p of items.values()) {
     for (const b of req.get(p.id) ?? []) {
-      if (b === p.treeParent) continue;
-      const q = nodes.get(b);
-      if (!q) continue;
-      let d: string;
-      if (q.col === p.col) {
-        const c = cols.find((cc) => cc.key === p.col)!;
-        const gx = c.x + c.width + 22;
-        d = `M${q.x + NODE_W} ${mid(q)}C${gx} ${mid(q)},${gx} ${mid(p)},${p.x + NODE_W} ${mid(p)}`;
-      } else if (q.x < p.x) {
-        const dx = Math.max(40, (p.x - q.x - NODE_W) / 2);
-        d = `M${q.x + NODE_W} ${mid(q)}C${q.x + NODE_W + dx} ${mid(q)},${p.x - dx} ${mid(p)},${p.x} ${mid(p)}`;
-      } else {
-        const dx = Math.max(40, (q.x - p.x - NODE_W) / 2);
-        d = `M${q.x} ${mid(q)}C${q.x - dx} ${mid(q)},${p.x + NODE_W + dx} ${mid(p)},${p.x + NODE_W} ${mid(p)}`;
-      }
-      edges.push({ id: `r-${b}-${p.id}`, from: b, to: p.id, kind: "extra", d, done: q.group === "completed" });
+      const q = items.get(b);
+      if (!q || treeParent.get(b) === p.id) continue;
+      const sx = q.x + CELL_W / 2;
+      const sy = q.y + ITEM_SQ;
+      const tx = p.x + CELL_W / 2;
+      const ty = p.y;
+      const bend = Math.max(40, Math.abs(ty - sy) / 2);
+      wires.push({
+        id: `r-${b}-${p.id}`,
+        from: b,
+        to: p.id,
+        kind: "extra",
+        d: `M${sx} ${sy}C${sx} ${sy + bend},${tx} ${ty - bend},${tx} ${ty}`,
+        done: q.group === "completed",
+        charge: false,
+      });
     }
   }
 
-  const bottom = Math.max(HEADER_Y + HEADER_H, ...[...nodes.values()].map((p) => p.y + NODE_H));
   return {
-    cols,
-    nodes,
-    edges,
-    width: Math.max(x - COL_GAP + 40, rootW + 40),
-    height: bottom + 40,
-    root: { x: 0, y: 0, w: rootW, h: rootH },
-    busY: BUS_Y,
-    headerY: HEADER_Y,
+    items,
+    kits,
+    crates,
+    wires,
+    goal: { x: goal.x, y: goal.y, w: goal.w, h: goal.h },
+    width: goal.span + PAD * 2,
+    height: goal.tall + PAD * 2,
+    next,
   };
 }
 
