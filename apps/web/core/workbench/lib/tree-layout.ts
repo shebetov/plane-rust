@@ -85,7 +85,6 @@ export const KIT_SQ = 84;
 const KIT_H = 140;
 const DEPTH_GAP = 56; // from a tile across to what it leads to (room for the wire's turn)
 const STACK_GAP = 10; // between siblings, one above the other
-const GOAL_ANCHOR = 64; // where wires meet the goal card: beside its picture
 const PAD = 24;
 /** the Blueprint card (its name with the Tool Cupboard under it); the page passes its measured height */
 export const ROOT_W = 374;
@@ -262,7 +261,7 @@ export function layoutTree(
 
   // ---- measure (heights and widths of every subtree), then place from the goal leftwards
   // where a wire meets a node, down from its top: the middle of its square
-  const anchor = (n: LNode) => (n.kind === "item" ? ITEM_SQ / 2 : n.kind === "kit" ? KIT_SQ / 2 : GOAL_ANCHOR);
+  const anchor = (n: LNode) => (n.kind === "item" ? ITEM_SQ / 2 : n.kind === "kit" ? KIT_SQ / 2 : n.h / 2);
   // the square's left and right edges (a tile's label is wider than its square)
   const sq = (n: LNode) => (n.kind === "item" ? ITEM_SQ : n.kind === "kit" ? KIT_SQ : n.w);
   const kidsH = (n: LNode) => n.kids.reduce((s, k) => s + k.span, 0) + STACK_GAP * Math.max(0, n.kids.length - 1);
