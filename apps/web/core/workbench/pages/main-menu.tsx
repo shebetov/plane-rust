@@ -49,7 +49,6 @@ export function MainMenu() {
   const scenes = useMemo(() => (banner === "default" ? DEFAULT_SCENES : [banner]), [banner]);
   const wipe = now ? currentWipe(now) : null;
   const active = (data?.blueprints ?? []).filter((b) => b.open > 0);
-  const next = active.find((b) => b.crafting > 0) ?? active[0];
 
   return (
     <WbPage active="home" title="Home" bare>
@@ -111,20 +110,13 @@ export function MainMenu() {
           </h1>
           <p className="wb-hero__text">
             {data
-              ? `${data.wipe.crafted ?? 0} items crafted this wipe (+${data.wipe.scrap ?? 0} scrap). ${
-                  next ? `Next up: ${next.name}.` : "Plan your next Blueprint."
-                }`
+              ? `${data.wipe.crafted ?? 0} items crafted this wipe (+${data.wipe.scrap ?? 0} scrap).`
               : "Loading the server…"}
           </p>
           <div className="wb-hero__btns">
             <Link className="wb-btn wb-btn--ghost" to={`/${slug}/wb/wipe`}>
               Wipe report
             </Link>
-            {next && (
-              <Link className="wb-btn wb-btn--amber" to={`/${slug}/wb/tree/${next.id}`}>
-                Craft next
-              </Link>
-            )}
           </div>
         </div>
       </div>
