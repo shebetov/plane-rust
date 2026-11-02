@@ -1032,38 +1032,14 @@ html {
   overflow: hidden;
   pointer-events: none;
 }
-.wb-menu__art {
+/* the scene canvas (components/scene.tsx): picture, smoke and dust; fades in from black */
+.wb-menu__scene {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
   animation: wb-bg-in 1.8s ease-out 0.1s forwards;
-}
-/* each picture drifts on its own and crossfades in when it is on */
-.wb-menu__art i {
-  position: absolute;
-  inset: -3%;
-  background: var(--wb-bg) 62% 30% / cover no-repeat;
-  opacity: 0;
-  transition: opacity 2.5s ease-in-out;
-  animation: wb-bg-drift 12s ease-in-out infinite alternate;
-}
-.wb-menu__art i.is-on {
-  opacity: 1;
-}
-.wb-menu__art i.is-in {
-  animation:
-    wb-bg-drift 12s ease-in-out infinite alternate,
-    wb-scene-in 2.5s ease-in-out;
-}
-@keyframes wb-scene-in {
-  from {
-    opacity: 0;
-  }
-}
-@media (orientation: portrait) {
-  .wb-menu__art i {
-    background-image: var(--wb-bg-tall, var(--wb-bg));
-  }
 }
 /* Rust's menu shade: dark on the left (news), the bottom (hero) and the corners */
 .wb-menu__bg::after {
@@ -1086,33 +1062,6 @@ html {
   }
   to {
     transform: scale(1.14) translate3d(-3%, -1.5%, 0);
-  }
-}
-/* smoke rolling across the scene, and dust floating up through it */
-.wb-menu__fog,
-.wb-menu__dust {
-  position: absolute;
-  pointer-events: none;
-}
-.wb-menu__fog {
-  inset: -20% -60%;
-  background:
-    radial-gradient(ellipse 22% 16% at 20% 70%, rgba(190, 178, 160, 0.16), transparent 70%),
-    radial-gradient(ellipse 30% 18% at 55% 82%, rgba(170, 160, 145, 0.14), transparent 70%),
-    radial-gradient(ellipse 18% 12% at 80% 60%, rgba(200, 190, 170, 0.1), transparent 70%);
-  animation: wb-fog 16s ease-in-out infinite alternate;
-}
-.wb-menu__dust {
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-@keyframes wb-fog {
-  from {
-    transform: translate3d(-14%, 1%, 0) scale(1);
-  }
-  to {
-    transform: translate3d(14%, -2%, 0) scale(1.08);
   }
 }
 /* panels come in the way Rust's menu pages do: a short fade with a small slide */

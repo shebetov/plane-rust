@@ -13,8 +13,7 @@ import { useWbHome, useWbState } from "../lib/api";
 import { currentWipe, leftText } from "../lib/wipe";
 import { RustItem, RustLogo } from "../components/rust-icon";
 import { useNow } from "../components/top-bar";
-import { DustCanvas } from "../components/dust";
-import { MenuBackdrop } from "../components/menu-backdrop";
+import { MenuScene } from "../components/scene";
 import { DEFAULT_SCENES, bannerSlug } from "../lib/scenes";
 import { WipeReportModal } from "./wipe-report";
 import { Panel, WbPage, ago } from "./shell";
@@ -91,9 +90,7 @@ export function MainMenu() {
       <div className={cn("wb-menu", `wb-scene--${banner}`)}>
         {/* Rust launcher art (theme/menu): fades in from black, drifts, and crossfades */}
         <div className="wb-menu__bg" aria-hidden>
-          <MenuBackdrop key={banner} scenes={scenes} />
-          <span className="wb-menu__fog" />
-          <DustCanvas className="wb-menu__dust" />
+          <MenuScene key={banner} scenes={scenes} className="wb-menu__scene" />
         </div>
         {error && (
           <div className="wb-menu__err">The Workbench server is offline. Your Items are fine: use the sidebar.</div>
