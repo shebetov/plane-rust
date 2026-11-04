@@ -12,7 +12,8 @@ export type TState = {
   wipe: TWipe;
   scrap: { earned: number; spent: number; balance: number };
   owned: string[];
-  equipped: { banner?: string; frame?: string; badge?: string };
+  /** banners: every banner worn; Home shuffles them */
+  equipped: { banners: string[]; frame?: string; badge?: string };
   title: TTitle | null;
   titles_earned: TEarned[];
   tc: Record<string, TTc>;

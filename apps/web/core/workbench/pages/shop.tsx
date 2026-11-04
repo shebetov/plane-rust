@@ -95,7 +95,12 @@ export function Shop() {
     setBusy(o.id);
     try {
       if (o.owned) {
-        await wb.post("equip", { kind: o.kind, offer: equipped ? null : o.id });
+        await wb.post(
+          "equip",
+          o.kind === "banner"
+            ? { kind: o.kind, offer: o.id, on: !equipped }
+            : { kind: o.kind, offer: equipped ? null : o.id }
+        );
         play("click");
       } else {
         await wb.post("buy", { offer: o.id });
@@ -128,7 +133,11 @@ export function Shop() {
   const others = offers.filter((o) => o.kind === "frame");
   const offerOf = (id: string) => offers.find((o) => o.id === id);
   const titles = [...(data?.titles ?? []), ...(data?.earned ?? [])];
-  const isOn = (o: TOffer) => data?.equipped[o.kind as "banner" | "frame" | "badge"] === o.id;
+  const isOn = (o: TOffer) =>
+    o.kind === "banner"
+      ? !!data?.equipped.banners.includes(o.id)
+      : data?.equipped[o.kind as "frame" | "badge"] === o.id;
+  const worn = data?.equipped.banners.length ?? 0;
   const button = (o: TOffer) => {
     const equipped = isOn(o);
     const poor = !o.owned && (data?.balance ?? 0) < o.cost;
@@ -264,6 +273,11 @@ export function Shop() {
           })}
         </div>
 
+        <p className="wb-muted wb-shop__worn">
+          {worn > 1
+            ? `${worn} banners equipped: Home shows them in turn, shuffled.`
+            : "Equip several banners, pictures and videos alike, and Home shows them in turn, shuffled."}
+        </p>
         {bannerGrid("Main-menu banners", pictures)}
         {bannerGrid("Video banners", videos)}
         <p className="wb-muted">

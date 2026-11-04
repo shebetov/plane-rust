@@ -8,8 +8,8 @@
  * picture is loaded, plus the next one shortly before its turn. Pauses while the tab is
  * hidden. The motion matches the old CSS version: drift 12 s, smoke 16 s, crossfade 2.5 s.
  */
-import { useEffect, useRef } from "react";
-import { sceneTallUrl, sceneUrl } from "../lib/scenes";
+import { useEffect, useRef, useState } from "react";
+import { isVideo, sceneTallUrl, sceneUrl, videoPoster, videoUrl } from "../lib/scenes";
 
 const FRAME_MS = 1000 / 30;
 const HOLD_MS = 12_000; // each picture of a crossfade stays this long
@@ -243,8 +243,21 @@ export function MenuScene({ scenes, className }: { scenes: string[]; className?:
  * hidden, and left on its first frame if it can't play. Like the canvas scene it keeps moving
  * with reduced motion.
  */
-export function MenuVideo({ src, poster, className }: { src: string; poster: string; className?: string }) {
+export function MenuVideo({
+  src,
+  poster,
+  className,
+  onDone,
+}: {
+  src: string;
+  poster: string;
+  className?: string;
+  /** in a playlist: called once the loop has run HOLD_MS, a fade before the clip ends */
+  onDone?: () => void;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
+  const done = useRef(onDone);
+  done.current = onDone;
 
   useEffect(() => {
     const v = ref.current;
@@ -255,7 +268,26 @@ export function MenuVideo({ src, poster, className }: { src: string; poster: str
     };
     sync();
     document.addEventListener("visibilitychange", sync);
-    return () => document.removeEventListener("visibilitychange", sync);
+
+    const t0 = performance.now();
+    let fired = false;
+    const fire = () => {
+      if (fired || !done.current) return;
+      fired = true;
+      done.current();
+    };
+    // switch near the end of a loop, so the crossfade covers the jump back to its start
+    const onTime = () => {
+      if (performance.now() - t0 >= HOLD_MS && v.duration - v.currentTime <= FADE_MS / 1000) fire();
+    };
+    v.addEventListener("timeupdate", onTime);
+    // a clip that never plays (refused autoplay, a failed load) shows its poster like a picture
+    const stuck = setTimeout(() => (v.paused || v.readyState < 3) && fire(), HOLD_MS);
+    return () => {
+      document.removeEventListener("visibilitychange", sync);
+      v.removeEventListener("timeupdate", onTime);
+      clearTimeout(stuck);
+    };
   }, [src]);
 
   return (
@@ -275,5 +307,76 @@ export function MenuVideo({ src, poster, className }: { src: string; poster: str
         !document.hidden && e.currentTarget.paused && void e.currentTarget.play().catch(() => undefined)
       }
     />
+  );
+}
+
+/** One banner of the main menu: a video loop, or a picture drifting with smoke and dust. */
+function Banner({ slug, className, onDone }: { slug: string; className?: string; onDone?: () => void }) {
+  useEffect(() => {
+    if (!onDone || isVideo(slug)) return;
+    const t = setTimeout(onDone, HOLD_MS);
+    return () => clearTimeout(t);
+    // a picture's turn is timed once, from when it comes on
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
+  return isVideo(slug) ? (
+    <MenuVideo src={videoUrl(slug)} poster={videoPoster(slug)} className={className} onDone={onDone} />
+  ) : (
+    <MenuScene scenes={[slug]} className={className} />
+  );
+}
+
+/** Loads what a banner shows first, so its fade-in doesn't start on an empty layer. */
+function warm(slug: string) {
+  const portrait = window.matchMedia("(orientation: portrait)").matches;
+  new Image().src = isVideo(slug) ? videoPoster(slug) : (portrait && sceneTallUrl(slug)) || sceneUrl(slug);
+}
+
+/** A shuffled order of `slugs` that never shows the same banner twice in a row. */
+function shuffled(slugs: string[], last?: string) {
+  const out = [...slugs];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  if (out.length > 1 && out[0] === last) out.push(out.shift()!);
+  return out;
+}
+
+/**
+ * Several equipped banners, pictures and videos alike: shown in turn, shuffled, each new one
+ * fading in over the one before (which is dropped once covered). A picture stays HOLD_MS; a
+ * video plays at least that long and hands over near the end of its loop.
+ */
+export function MenuPlaylist({ slugs, className }: { slugs: string[]; className?: string }) {
+  const bag = useRef<string[]>([]);
+  const take = (last?: string) => {
+    if (!bag.current.length) bag.current = shuffled(slugs, last);
+    return bag.current.shift()!;
+  };
+  const [slides, setSlides] = useState(() => [{ slug: take(), n: 0 }]);
+  const top = slides[slides.length - 1];
+
+  useEffect(() => {
+    if (!bag.current.length) bag.current = shuffled(slugs, top.slug);
+    warm(bag.current[0]);
+    if (slides.length < 2) return;
+    const t = setTimeout(() => setSlides((s) => s.slice(-1)), FADE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [top.n]);
+
+  const advance = () =>
+    setSlides((s) => {
+      const on = s[s.length - 1];
+      return [on, { slug: take(on.slug), n: on.n + 1 }];
+    });
+
+  return (
+    <>
+      {slides.map((s) => (
+        <Banner key={s.n} slug={s.slug} className={className} onDone={s === top ? advance : undefined} />
+      ))}
+    </>
   );
 }

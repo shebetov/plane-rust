@@ -228,6 +228,15 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
     def earned_titles() -> list[dict]:
         return game.earned_titles(game.title_stats(db.ledger(), world.learned()))
 
+    def equipped_now() -> dict:
+        """What is worn: a frame, a badge and any number of banners (Home shuffles them).
+        Older state kept a single "banner"; banners no longer sold are dropped."""
+        eq = dict(db.get("equipped", {}))
+        banners = eq.pop("banners", None) or ([eq["banner"]] if eq.get("banner") else [])
+        eq.pop("banner", None)
+        eq["banners"] = list(dict.fromkeys(b for b in banners if b in game.OFFERS))
+        return eq
+
     # ---- endpoints
     async def health(_):
         return JSONResponse({"ok": True})
@@ -237,7 +246,7 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
         await world.ensure()
         earned, purchases = db.earned(), db.purchases()
         owned = sorted({p["offer"] for p in purchases if not game.OFFERS.get(p["offer"], game.SHOP[0]).repeat})
-        equipped = db.get("equipped", {})
+        equipped = equipped_now()
         title = game.TITLES.get(equipped.get("badge", ""))
         return JSONResponse({
             "wipe": wipe_info(db),
@@ -377,7 +386,7 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
         earned, purchases = db.earned(), db.purchases()
         owned = {p["offer"] for p in purchases}
         await world.ensure()
-        return JSONResponse({"balance": game.balance(earned, purchases), "equipped": db.get("equipped", {}),
+        return JSONResponse({"balance": game.balance(earned, purchases), "equipped": equipped_now(),
                              "offers": [{**o.__dict__, "owned": o.id in owned and not o.repeat} for o in game.SHOP],
                              "titles": [{**t.__dict__, "owned": t.id in owned}
                                         for t in game.TITLES.values() if not t.stat],
@@ -402,8 +411,12 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
             cur = game.parse_dt(world.tc(target)["until"])
             db.set_topup(target, game.topup(cur, now()).isoformat())
         db.buy(offer.id, offer.cost, target)
-        if offer.kind in ("banner", "frame", "badge"):
-            eq = db.get("equipped", {})
+        if offer.kind == "banner":
+            eq = equipped_now()
+            eq["banners"] = [*eq["banners"], offer.id]
+            db.put("equipped", eq)
+        elif offer.kind in ("frame", "badge"):
+            eq = equipped_now()
             eq[offer.kind] = offer.id
             db.put("equipped", eq)
         return JSONResponse({"ok": True, "balance": game.balance(db.earned(), db.purchases())})
@@ -418,10 +431,13 @@ def create_app(plane: Plane | None = None, db: DB | None = None, wipe_sync: bool
             await world.ensure()
             if not any(t["id"] == oid and t["owned"] for t in earned_titles()):
                 return JSONResponse({"error": "not earned yet"}, status_code=403)
-        elif oid and not any(p["offer"] == oid for p in db.purchases()):
+        elif oid and body.get("on", True) and not any(p["offer"] == oid for p in db.purchases()):
             return JSONResponse({"error": "not owned"}, status_code=403)
-        eq = db.get("equipped", {})
-        if oid:
+        eq = equipped_now()
+        if kind == "banner":  # several at once: Home shuffles them; no offer takes them all off
+            keep = [b for b in eq["banners"] if b != oid]
+            eq["banners"] = [*keep, oid] if oid and body.get("on", True) else keep if oid else []
+        elif oid:
             eq[kind] = oid
         else:
             eq.pop(kind, None)

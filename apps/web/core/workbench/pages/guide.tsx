@@ -242,6 +242,7 @@ export function Guide() {
                 "First visit of the day: the plate is stamped on with sparks.",
                 "Some titles can't be bought. Earn them by crafting: the Shop shows how close you are.",
                 "Buy once. Equip or take off any time.",
+                "Equip several banners and Home shows them in turn, shuffled.",
               ]}
             />
           </Panel>

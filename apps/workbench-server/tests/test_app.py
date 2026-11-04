@@ -174,3 +174,18 @@ def test_earned_titles_can_be_worn_once_unlocked(env):
     assert c.post("/wb/api/equip", json={"kind": "badge", "offer": "feat-spawn"}).status_code == 200
     s = c.get("/wb/api/state").json()
     assert s["title"]["name"] == "Fresh Spawn" and [t["id"] for t in s["titles_earned"]] == ["feat-spawn"]
+
+
+def test_several_banners_can_be_worn_at_once(env, tmp_path):
+    c, _, _ = env
+    db = DB(str(tmp_path / "wb.db"))
+    db.put("equipped", {"banner": "banner-snow"})  # older state: one banner
+    for o in ("banner-desert", "banner-video-oilrig"):
+        db.buy(o, 0, None)
+    assert c.get("/wb/api/state").json()["equipped"]["banners"] == ["banner-snow"]
+    assert c.post("/wb/api/equip", json={"kind": "banner", "offer": "banner-video-oilrig"}).status_code == 200
+    assert c.post("/wb/api/equip", json={"kind": "banner", "offer": "banner-desert"}).status_code == 200
+    eq = c.post("/wb/api/equip", json={"kind": "banner", "offer": "banner-snow", "on": False}).json()["equipped"]
+    assert eq["banners"] == ["banner-video-oilrig", "banner-desert"]
+    assert c.post("/wb/api/equip", json={"kind": "banner", "offer": "banner-abyss"}).status_code == 403  # not owned
+    assert c.post("/wb/api/equip", json={"kind": "banner", "offer": None}).json()["equipped"]["banners"] == []

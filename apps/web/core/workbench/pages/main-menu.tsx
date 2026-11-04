@@ -13,7 +13,7 @@ import { useWbHome, useWbState } from "../lib/api";
 import { currentWipe, leftText } from "../lib/wipe";
 import { RustItem, RustLogo } from "../components/rust-icon";
 import { useNow } from "../components/top-bar";
-import { MenuScene, MenuVideo } from "../components/scene";
+import { MenuPlaylist, MenuScene, MenuVideo } from "../components/scene";
 import { DEFAULT_SCENES, bannerSlug, isVideo, videoPoster, videoUrl } from "../lib/scenes";
 import { WipeReportModal } from "./wipe-report";
 import { Panel, WbPage, ago } from "./shell";
@@ -78,8 +78,10 @@ export function MainMenu() {
     if (data?.report_due !== undefined && data.report_due !== null) setReport(data.report_due);
   }, [data?.report_due]);
 
-  const banner = state?.equipped.banner ? bannerSlug(state.equipped.banner) : "default";
-  const scenes = useMemo(() => (banner === "default" ? DEFAULT_SCENES : [banner]), [banner]);
+  const worn = state?.equipped.banners.map(bannerSlug) ?? [];
+  const banner = worn.length === 1 ? worn[0] : worn.length ? "mix" : "default";
+  const wornKey = worn.join(",");
+  const mix = useMemo(() => (wornKey ? wornKey.split(",") : []), [wornKey]);
   const wipe = now ? currentWipe(now) : null;
   const due = data?.deadlines ?? [];
   const late = due.filter((d) => d.days < 0);
@@ -88,12 +90,14 @@ export function MainMenu() {
   return (
     <WbPage active="home" title="Home" bare>
       <div className={cn("wb-menu", `wb-scene--${banner}`)}>
-        {/* Rust launcher art (theme/menu): fades in from black, drifts, and crossfades; or a video loop */}
+        {/* Rust launcher art (theme/menu): fades in from black, drifts, and crossfades; or a video loop; several banners take turns, shuffled */}
         <div className="wb-menu__bg" aria-hidden>
-          {isVideo(banner) ? (
+          {banner === "mix" ? (
+            <MenuPlaylist key={wornKey} slugs={mix} className="wb-menu__scene" />
+          ) : isVideo(banner) ? (
             <MenuVideo key={banner} src={videoUrl(banner)} poster={videoPoster(banner)} className="wb-menu__scene" />
           ) : (
-            <MenuScene key={banner} scenes={scenes} className="wb-menu__scene" />
+            <MenuScene key={banner} scenes={banner === "default" ? DEFAULT_SCENES : mix} className="wb-menu__scene" />
           )}
         </div>
         {error && (
