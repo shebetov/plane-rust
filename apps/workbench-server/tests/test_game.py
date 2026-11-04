@@ -142,5 +142,5 @@ def test_earned_titles_unlock_from_the_crafting_record():
 def test_video_banners_are_banners_with_their_own_ids():
     ids = [o.id for o in game.SHOP]
     assert len(ids) == len(set(ids))
-    assert len(game.VIDEO_BANNERS) == 33
+    assert len(game.VIDEO_BANNERS) == 32
     assert all(o.kind == "banner" and o.id.startswith("banner-video-") for o in game.VIDEO_BANNERS)
