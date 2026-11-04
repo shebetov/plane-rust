@@ -117,6 +117,7 @@ VIDEO_BANNERS = [
         ("boatvillage2", "Lobster Shack", 200, "A fire by the lobster shack"),
         ("desert", "Desert Rocks", 250, "Palms and rock in the heat"),
         ("mountain", "Snowy Peaks", 250, "A cold climb through dead trees"),
+        ("mountain-original", "Snowy Peaks (original)", 250, "The untouched game file, 1440p 60 fps, to compare"),
         ("swamp", "Swamp", 250, "Still water and drowned trees"),
         ("rocks", "Canyon", 250, "A sunlit gap between the cliffs"),
     )
