@@ -236,3 +236,44 @@ export function MenuScene({ scenes, className }: { scenes: string[]; className?:
 
   return <canvas ref={ref} className={className} aria-hidden />;
 }
+
+/**
+ * A video banner: one of the game's menu loops (H.264, 30 fps, decoded by the GPU, so it is
+ * lighter than the canvas scene). Muted and inline so it may autoplay; paused while the tab is
+ * hidden, and left on its first frame if it can't play. Like the canvas scene it keeps moving
+ * with reduced motion.
+ */
+export function MenuVideo({ src, poster, className }: { src: string; poster: string; className?: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const sync = () => {
+      if (document.hidden) v.pause();
+      else v.play().catch(() => undefined); // autoplay refused (e.g. Low Power Mode): the poster stays
+    };
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => document.removeEventListener("visibilitychange", sync);
+  }, [src]);
+
+  return (
+    <video
+      ref={ref}
+      className={className}
+      src={src}
+      poster={poster}
+      muted
+      loop
+      playsInline
+      preload="auto"
+      disablePictureInPicture
+      aria-hidden
+      // a play() refused while the clip was still loading (Safari) is retried once it can play
+      onCanPlay={(e) =>
+        !document.hidden && e.currentTarget.paused && void e.currentTarget.play().catch(() => undefined)
+      }
+    />
+  );
+}

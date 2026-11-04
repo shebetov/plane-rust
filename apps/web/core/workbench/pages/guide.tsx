@@ -237,6 +237,7 @@ export function Guide() {
               items={[
                 "Looks only. No pay-to-win.",
                 "Banners for Home, notice frames, titles.",
+                "Video banners loop the game's own menu scenes. Hover a card (or tap it on a phone) to preview it.",
                 "Your title hangs on a metal plate at the top of the sidebar.",
                 "First visit of the day: the plate is stamped on with sparks.",
                 "Some titles can't be bought. Earn them by crafting: the Shop shows how close you are.",

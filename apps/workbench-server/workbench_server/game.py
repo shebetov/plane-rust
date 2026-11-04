@@ -83,9 +83,49 @@ BANNERS = [
       for n, r in ((1, "I"), (2, "II"), (3, "III"), (4, "IV"), (6, "VI"), (7, "VII"), (8, "VIII"))),
 ]
 
+# Video banners: the game's own main-menu loops, theme/menu/video/<name>.mp4 (slug video-<name>).
+VIDEO_BANNERS = [
+    _banner(f"video-{slug}", name, cost, desc)
+    for slug, name, cost, desc in (
+        ("oilrig", "Oil Rig", 400, "The rig on the horizon at sunset"),
+        ("nukesilo", "Missile Silo", 400, "Hangars in the hills around the silo"),
+        ("scrapheli", "Scrap Heli", 400, "The transport heli parked at the yard"),
+        ("lighthouse", "Lighthouse", 350, "A lighthouse against the setting sun"),
+        ("moonpool", "Moon Pool", 350, "The sub bay of an underwater lab"),
+        ("scientists", "Scientists", 350, "A patrol in blue hazmat suits"),
+        ("autoturret", "Auto Turret", 350, "A turret wakes up in a dark base"),
+        ("locomotive", "Locomotive", 350, "A train rolling through the desert"),
+        ("arcticlabs", "Arctic Labs", 300, "Wind turbines over the snowbound base"),
+        ("attackhelicopter", "Minicopter", 300, "A minicopter waiting by the wall"),
+        ("banditcamp1", "Bandit Camp", 300, "Stairs up into the camp"),
+        ("banditcamp2", "Bandit Swamp", 300, "The camp's huts in the misty swamp"),
+        ("desertbase1", "Desert Base", 300, "A water tower in the haze"),
+        ("desertbase2", "Barbed Wire", 300, "Wire and towers in the dunes"),
+        ("dome", "The Dome", 300, "The rusted sphere in the pines"),
+        ("ferryterminal", "Ferry Terminal", 300, "Cars on the ramp by the sea"),
+        ("harbor1", "Harbor", 300, "Cranes over the harbour water"),
+        ("harbor2", "Harbor Docks", 300, "A container ship below the mountain"),
+        ("harbor4", "Harbor Yard", 300, "Old brick and a bollard by the quay"),
+        ("outpost", "Outpost", 300, "A long walk down the safe-zone street"),
+        ("tugboat", "Tugboat", 300, "A tug moored by the docks"),
+        ("workcart", "Workcart", 300, "Cones and rails in the tunnel"),
+        ("modularvehicles", "Modular Cars", 300, "Two cars outside the garage"),
+        ("stables", "Stables", 300, "A barn in the morning sun"),
+        ("industrial", "Garage", 250, "A lit workshop with a furnace"),
+        ("boatvillage1", "Fishing Village", 250, "Huts on stilts over the sea"),
+        ("boatvillage3", "Fishing Nets", 250, "Nets hung out on the pier"),
+        ("boatvillage2", "Lobster Shack", 200, "A fire by the lobster shack"),
+        ("desert", "Desert Rocks", 250, "Palms and rock in the heat"),
+        ("mountain", "Snowy Peaks", 250, "A cold climb through dead trees"),
+        ("swamp", "Swamp", 250, "Still water and drowned trees"),
+        ("rocks", "Canyon", 250, "A sunlit gap between the cliffs"),
+    )
+]
+
 SHOP = [
     Offer("upkeep", "Upkeep: 2 days", "upkeep", 50, "Adds 2 days of Tool Cupboard protection to a Blueprint", True),
     *BANNERS,
+    *VIDEO_BANNERS,
     Offer("frame-gold", "Notice frame: Gold", "frame", 200, "Crafted notices in gold trim"),
     Offer("frame-red", "Notice frame: Raid Red", "frame", 150, "Crafted notices in alarm red"),
     Offer("badge-survivor", "Title: Wipe Survivor", "badge", 300, "A metal plate at the top of your sidebar"),

@@ -13,8 +13,8 @@ import { useWbHome, useWbState } from "../lib/api";
 import { currentWipe, leftText } from "../lib/wipe";
 import { RustItem, RustLogo } from "../components/rust-icon";
 import { useNow } from "../components/top-bar";
-import { MenuScene } from "../components/scene";
-import { DEFAULT_SCENES, bannerSlug } from "../lib/scenes";
+import { MenuScene, MenuVideo } from "../components/scene";
+import { DEFAULT_SCENES, bannerSlug, isVideo, videoPoster, videoUrl } from "../lib/scenes";
 import { WipeReportModal } from "./wipe-report";
 import { Panel, WbPage, ago } from "./shell";
 
@@ -88,9 +88,13 @@ export function MainMenu() {
   return (
     <WbPage active="home" title="Home" bare>
       <div className={cn("wb-menu", `wb-scene--${banner}`)}>
-        {/* Rust launcher art (theme/menu): fades in from black, drifts, and crossfades */}
+        {/* Rust launcher art (theme/menu): fades in from black, drifts, and crossfades; or a video loop */}
         <div className="wb-menu__bg" aria-hidden>
-          <MenuScene key={banner} scenes={scenes} className="wb-menu__scene" />
+          {isVideo(banner) ? (
+            <MenuVideo key={banner} src={videoUrl(banner)} poster={videoPoster(banner)} className="wb-menu__scene" />
+          ) : (
+            <MenuScene key={banner} scenes={scenes} className="wb-menu__scene" />
+          )}
         </div>
         {error && (
           <div className="wb-menu__err">The Workbench server is offline. Your Items are fine: use the sidebar.</div>

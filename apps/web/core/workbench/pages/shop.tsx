@@ -1,10 +1,11 @@
 /**
  * The shop, after Rust's vending machine: FOR SALE | COST | BUY rows. Everything is
- * cosmetic (notice frames, titles, and main-menu banners shown as a grid of pictures) except
+ * cosmetic (notice frames, titles, and main-menu banners shown as grids of pictures and of
+ * video loops, which play on hover) except
  * upkeep, which is paid from a Blueprint's Tool Cupboard. Scrap is earned by crafting Items.
  * Titles show their plate; earned titles unlock from the crafting record, with progress.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { mutate } from "swr";
 import { cn } from "@plane/utils";
 import type { TOffer, TTitle } from "../lib/api";
@@ -13,7 +14,7 @@ import { play } from "../sound/engine";
 import { pushNotice } from "../components/notices";
 import { RustItem } from "../components/rust-icon";
 import { PlateFace } from "../components/title-plate";
-import { bannerSlug, sceneThumb } from "../lib/scenes";
+import { bannerSlug, isVideo, sceneThumb, videoUrl } from "../lib/scenes";
 import { WbPage } from "./shell";
 
 const STAT: Record<string, string> = {
@@ -26,6 +27,49 @@ const STAT: Record<string, string> = {
 function Preview({ o }: { o: TOffer }) {
   if (o.kind === "upkeep") return <RustItem item="cupboard.tool" size={54} />;
   return <span className={cn("wb-shop__frame", `wb-notice--${o.id.replace("frame-", "")}`)} />;
+}
+
+/** A banner card's picture. A video banner previews its loop after a short hover (a tap on
+ * touch screens); the video is only loaded while it previews and is dropped afterwards. */
+function CardArt({ slug, name }: { slug: string; name: string }) {
+  const [on, setOn] = useState(false);
+  const timer = useRef(0);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const img = <img src={sceneThumb(slug)} alt="" loading="lazy" decoding="async" />;
+  if (!isVideo(slug)) return img;
+  const leave = () => {
+    window.clearTimeout(timer.current);
+    setOn(false);
+  };
+  return (
+    <button
+      type="button"
+      className="wb-shop__art"
+      aria-label={`Preview ${name}`}
+      aria-pressed={on}
+      data-wb-silent
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") timer.current = window.setTimeout(() => setOn(true), 250);
+      }}
+      onPointerLeave={(e) => e.pointerType === "mouse" && leave()}
+      // a tap (no hover) or Enter/Space (detail 0) toggles the preview
+      onClick={(e) => (e.detail === 0 || !matchMedia("(hover: hover)").matches) && setOn((x) => !x)}
+    >
+      {img}
+      {on && (
+        <video
+          src={videoUrl(slug)}
+          muted
+          loop
+          playsInline
+          autoPlay
+          aria-hidden
+          onPlaying={(e) => e.currentTarget.classList.add("is-on")}
+        />
+      )}
+      <i className="wb-shop__live">Video</i>
+    </button>
+  );
 }
 
 function Goal({ t }: { t: TTitle }) {
@@ -79,6 +123,8 @@ export function Shop() {
 
   const offers = data?.offers ?? [];
   const banners = offers.filter((o) => o.kind === "banner");
+  const videos = banners.filter((o) => isVideo(bannerSlug(o.id)));
+  const pictures = banners.filter((o) => !isVideo(bannerSlug(o.id)));
   const others = offers.filter((o) => o.kind === "frame");
   const offerOf = (id: string) => offers.find((o) => o.id === id);
   const titles = [...(data?.titles ?? []), ...(data?.earned ?? [])];
@@ -98,6 +144,38 @@ export function Shop() {
       </button>
     );
   };
+
+  const bannerGrid = (title: string, list: TOffer[]) => (
+    <>
+      <div className="wb-shop__head wb-shop__head--banners">
+        <span>{title}</span>
+        <span>
+          {list.filter((o) => o.owned).length} / {list.length} owned
+        </span>
+      </div>
+      <div className="wb-shop__banners">
+        {list.map((o) => (
+          <div
+            key={o.id}
+            className={cn("wb-shop__card", o.owned && "wb-shop__card--owned", isOn(o) && "wb-shop__card--on")}
+          >
+            <CardArt slug={bannerSlug(o.id)} name={o.name.replace("Banner: ", "")} />
+            <span className="wb-shop__card-name">
+              <b>{o.name.replace("Banner: ", "")}</b>
+              <small>{o.desc}</small>
+            </span>
+            <span className="wb-shop__card-foot">
+              <span className="wb-shop__price">
+                <RustItem item="scrap" size={22} />
+                {o.owned ? "Owned" : `x${o.cost}`}
+              </span>
+              {button(o)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
 
   return (
     <WbPage active="shop" title="Shop">
@@ -186,33 +264,8 @@ export function Shop() {
           })}
         </div>
 
-        <div className="wb-shop__head wb-shop__head--banners">
-          <span>Main-menu banners</span>
-          <span>
-            {banners.filter((o) => o.owned).length} / {banners.length} owned
-          </span>
-        </div>
-        <div className="wb-shop__banners">
-          {banners.map((o) => (
-            <div
-              key={o.id}
-              className={cn("wb-shop__card", o.owned && "wb-shop__card--owned", isOn(o) && "wb-shop__card--on")}
-            >
-              <img src={sceneThumb(bannerSlug(o.id))} alt="" loading="lazy" decoding="async" />
-              <span className="wb-shop__card-name">
-                <b>{o.name.replace("Banner: ", "")}</b>
-                <small>{o.desc}</small>
-              </span>
-              <span className="wb-shop__card-foot">
-                <span className="wb-shop__price">
-                  <RustItem item="scrap" size={22} />
-                  {o.owned ? "Owned" : `x${o.cost}`}
-                </span>
-                {button(o)}
-              </span>
-            </div>
-          ))}
-        </div>
+        {bannerGrid("Main-menu banners", pictures)}
+        {bannerGrid("Video banners", videos)}
         <p className="wb-muted">
           Earn scrap by crafting Items: Twig 5 · Wood 10 · Stone 15 · Sheet Metal 25 · Armored 40 · components 5. Upkeep
           (50 scrap = 2 days) is paid from a Blueprint&apos;s Tool Cupboard.

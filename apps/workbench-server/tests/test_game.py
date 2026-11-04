@@ -137,3 +137,10 @@ def test_earned_titles_unlock_from_the_crafting_record():
     assert titles["feat-spawn"]["owned"] and not titles["feat-scavenger"]["owned"]
     assert titles["feat-scavenger"]["progress"] == 3 and titles["feat-scavenger"]["goal"] == 25
     assert not titles["feat-researcher"]["owned"]
+
+
+def test_video_banners_are_banners_with_their_own_ids():
+    ids = [o.id for o in game.SHOP]
+    assert len(ids) == len(set(ids))
+    assert len(game.VIDEO_BANNERS) == 32
+    assert all(o.kind == "banner" and o.id.startswith("banner-video-") for o in game.VIDEO_BANNERS)
