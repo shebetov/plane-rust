@@ -16,7 +16,7 @@ import { CustomizeNavigationDialog } from "@/components/navigation/customize-nav
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useSize from "@/hooks/use-window-size";
 // plane web components
-import { SoundSwitches, WipeCountdown } from "@/workbench/components/top-bar";
+import { WipeCountdown } from "@/workbench/components/top-bar";
 import { TitlePlate } from "@/workbench/components/title-plate";
 import { AppSidebarToggleButton } from "./sidebar-toggle-button";
 import { IconButton } from "@plane/propel/icon-button";
@@ -91,9 +91,6 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
         {/* Help Section */}
         <div className="flex h-12 items-center justify-between border-t border-subtle bg-surface-1 p-3">
           <WipeCountdown />
-          <span className="wb-side-sound">
-            <SoundSwitches />
-          </span>
           {/* TODO: To be checked if we need this */}
           {/* <div className="flex items-center gap-2">
           {!shouldRenderAppRail && <HelpMenu />}

@@ -2959,8 +2959,7 @@ video.wb-menu__scene {
 }
 
 @media (max-width: 767px) {
-  .wb-wipe--top,
-  .wb-top-sound {
+  .wb-wipe--top {
     display: none;
   }
   .wb-chip {
@@ -2971,13 +2970,6 @@ video.wb-menu__scene {
   }
   .wb-ibtn {
     width: 28px;
-  }
-}
-
-/* sound switches live in the top bar on desktop, in the sidebar footer on phones */
-@media (min-width: 768px) {
-  .wb-side-sound {
-    display: none;
   }
 }
 
