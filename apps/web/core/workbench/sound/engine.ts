@@ -261,7 +261,10 @@ export function startSoundEngine() {
   for (const ev of ["pointerdown", "keydown", "touchend"]) document.addEventListener(ev, wake, { capture: true });
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) void startMusic();
-    else if (state.mobile) releaseMusic();
-    else if (!state.bg) stopMusic();
+    else if (state.mobile) {
+      // iOS can loop a scrap of buffered sound when it freezes a running audio context
+      releaseMusic();
+      void ctx?.suspend().catch(() => undefined);
+    } else if (!state.bg) stopMusic();
   });
 }

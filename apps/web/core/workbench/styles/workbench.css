@@ -2991,6 +2991,11 @@ video.wb-menu__scene {
   .wb-topnav > div:last-child {
     flex: none;
   }
+  /* room under the status bar, clear of Safari's top blur */
+  .wb-topnav {
+    min-height: 52px;
+    padding-top: 8px;
+  }
 }
 
 /* phones: Plane's rounded content frame and its outer gap go, so screens use the full width */
