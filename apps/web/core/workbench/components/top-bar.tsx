@@ -141,7 +141,9 @@ export function WorkbenchTopBar() {
       <WipeCountdown className="wb-wipe--top" />
       <CupboardChip />
       <ScrapChip />
-      <SoundSwitches />
+      <span className="wb-top-sound">
+        <SoundSwitches />
+      </span>
       <WorkbenchLive />
     </div>
   );
