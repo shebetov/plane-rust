@@ -4,7 +4,9 @@
  * a slot with no file is silent, so the public fork runs fine without them.
  *  - effects: on by default (localStorage wb:fx)
  *  - music:   off by default (localStorage wb:music); music-1.mp3, music-2.mp3, … shuffled
- *  - bg:      music keeps playing in another tab or app; off by default (localStorage wb:music-bg)
+ *  - bg:      music keeps playing in another tab or app; off by default (localStorage wb:music-bg), desktop only
+ * On phones the audio session is "ambient" and a hidden page releases the music player, so the music
+ * stays out of the system media player (lock screen, Control Center).
  * Browsers only start audio from a user gesture, so the first tap/keypress unlocks it.
  */
 
@@ -35,7 +37,7 @@ const FX_VOLUME = 0.55;
 const MUSIC_VOLUME = 0.22;
 const FADE_S = 2.5;
 
-type TState = { fx: boolean; music: boolean; bg: boolean };
+type TState = { fx: boolean; music: boolean; bg: boolean; mobile: boolean };
 const listeners = new Set<(s: TState) => void>();
 
 function read(key: string, dflt: boolean): boolean {
@@ -54,7 +56,7 @@ function write(key: string, on: boolean) {
   }
 }
 
-let state: TState = { fx: true, music: false, bg: false };
+let state: TState = { fx: true, music: false, bg: false, mobile: false };
 let ctx: AudioContext | null = null;
 const buffers = new Map<TSoundSlot, Promise<AudioBuffer | null>>();
 let tracks: string[] | null = null;
@@ -62,6 +64,7 @@ let order: string[] = [];
 let music: HTMLAudioElement | null = null;
 let musicGain: GainNode | null = null;
 let musicFails = 0;
+let resume: string | null = null;
 let lastPlay = 0;
 let started = false;
 
@@ -176,6 +179,10 @@ async function startMusic() {
     musicGain.connect(c.destination);
   }
   if (!music.paused) return;
+  if (resume) {
+    music.src = resume;
+    resume = null;
+  }
   musicGain!.gain.cancelScheduledValues(c.currentTime);
   musicGain!.gain.setValueAtTime(0, c.currentTime);
   musicGain!.gain.linearRampToValueAtTime(MUSIC_VOLUME, c.currentTime + FADE_S);
@@ -184,6 +191,15 @@ async function startMusic() {
 
 function stopMusic() {
   music?.pause();
+}
+
+/* drop the source so the system media player forgets the page; startMusic picks up at the same spot */
+function releaseMusic() {
+  if (!music?.src) return;
+  music.pause();
+  resume = `${music.src.split("#")[0]}#t=${music.currentTime.toFixed(1)}`;
+  music.removeAttribute("src");
+  music.load();
 }
 
 /* ---------------- switches ---------------- */
@@ -231,7 +247,10 @@ export function setMusic(on: boolean) {
 export function startSoundEngine() {
   if (started || typeof window === "undefined") return;
   started = true;
-  state = { fx: read("wb:fx", true), music: read("wb:music", false), bg: read("wb:music-bg", false) };
+  const mobile = window.matchMedia("(pointer: coarse)").matches;
+  state = { fx: read("wb:fx", true), music: read("wb:music", false), bg: read("wb:music-bg", false), mobile };
+  const session = (navigator as unknown as { audioSession?: { type: string } }).audioSession;
+  if (mobile && session) session.type = "ambient";
   emit();
   const wake = () => {
     if (!state.fx && !state.music) return;
@@ -242,6 +261,7 @@ export function startSoundEngine() {
   for (const ev of ["pointerdown", "keydown", "touchend"]) document.addEventListener(ev, wake, { capture: true });
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) void startMusic();
+    else if (state.mobile) releaseMusic();
     else if (!state.bg) stopMusic();
   });
 }

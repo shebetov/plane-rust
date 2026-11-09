@@ -89,7 +89,7 @@ function CupboardChip() {
 }
 
 export function SoundSwitches() {
-  const { fx, music, bg } = useSoundState();
+  const { fx, music, bg, mobile } = useSoundState();
   return (
     <div className="wb-switches">
       <Tooltip tooltipContent={fx ? "Sound effects on" : "Sound effects off"} position="bottom">
@@ -115,7 +115,7 @@ export function SoundSwitches() {
           <Music className="size-4" />
         </button>
       </Tooltip>
-      {music && (
+      {music && !mobile && (
         <Tooltip
           tooltipContent={bg ? "Music keeps playing in other tabs and apps" : "Music pauses in other tabs and apps"}
           position="bottom"
