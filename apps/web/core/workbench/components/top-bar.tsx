@@ -4,14 +4,14 @@
  * It also mounts the live layer (notices, craft queue).
  */
 import { useEffect, useState } from "react";
-import { Music, Volume2, VolumeX } from "lucide-react";
+import { Headphones, Music, Volume2, VolumeX } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Link } from "react-router";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 import { useWbState } from "../lib/api";
 import { currentWipe, leftText } from "../lib/wipe";
-import { setFx, setMusic } from "../sound/engine";
+import { setFx, setMusic, setMusicBg } from "../sound/engine";
 import { useSoundState } from "../sound/use-sound-state";
 import { WorkbenchLive } from "./live";
 import { RustItem } from "./rust-icon";
@@ -89,7 +89,7 @@ function CupboardChip() {
 }
 
 export function SoundSwitches() {
-  const { fx, music } = useSoundState();
+  const { fx, music, bg } = useSoundState();
   return (
     <div className="wb-switches">
       <Tooltip tooltipContent={fx ? "Sound effects on" : "Sound effects off"} position="bottom">
@@ -115,6 +115,22 @@ export function SoundSwitches() {
           <Music className="size-4" />
         </button>
       </Tooltip>
+      {music && (
+        <Tooltip
+          tooltipContent={bg ? "Music keeps playing in other tabs and apps" : "Music pauses in other tabs and apps"}
+          position="bottom"
+        >
+          <button
+            type="button"
+            className={cn("wb-ibtn", bg && "wb-ibtn--on")}
+            aria-pressed={bg}
+            aria-label="Background music"
+            onClick={() => setMusicBg(!bg)}
+          >
+            <Headphones className="size-4" />
+          </button>
+        </Tooltip>
+      )}
     </div>
   );
 }

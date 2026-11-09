@@ -228,6 +228,7 @@ export function Guide() {
                 "Notices: ITEM CRAFTED, KIT COMPLETE, BLUEPRINT LEARNED, SCRAPPED.",
                 "Back after a break? You see what got crafted while you were away.",
                 "Sound is on, music is off. Switch both in the top bar.",
+                "With music on, the headphones button keeps it playing in other tabs and apps.",
               ]}
             />
           </Panel>

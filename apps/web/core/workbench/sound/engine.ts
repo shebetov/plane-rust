@@ -4,6 +4,7 @@
  * a slot with no file is silent, so the public fork runs fine without them.
  *  - effects: on by default (localStorage wb:fx)
  *  - music:   off by default (localStorage wb:music); music-1.mp3, music-2.mp3, … shuffled
+ *  - bg:      music keeps playing in another tab or app; off by default (localStorage wb:music-bg)
  * Browsers only start audio from a user gesture, so the first tap/keypress unlocks it.
  */
 
@@ -34,7 +35,7 @@ const FX_VOLUME = 0.55;
 const MUSIC_VOLUME = 0.22;
 const FADE_S = 2.5;
 
-type TState = { fx: boolean; music: boolean };
+type TState = { fx: boolean; music: boolean; bg: boolean };
 const listeners = new Set<(s: TState) => void>();
 
 function read(key: string, dflt: boolean): boolean {
@@ -53,7 +54,7 @@ function write(key: string, on: boolean) {
   }
 }
 
-let state: TState = { fx: true, music: false };
+let state: TState = { fx: true, music: false, bg: false };
 let ctx: AudioContext | null = null;
 const buffers = new Map<TSoundSlot, Promise<AudioBuffer | null>>();
 let tracks: string[] | null = null;
@@ -210,6 +211,12 @@ export function setFx(on: boolean) {
   emit();
 }
 
+export function setMusicBg(on: boolean) {
+  state = { ...state, bg: on };
+  write("wb:music-bg", on);
+  emit();
+}
+
 export function setMusic(on: boolean) {
   state = { ...state, music: on };
   write("wb:music", on);
@@ -224,7 +231,7 @@ export function setMusic(on: boolean) {
 export function startSoundEngine() {
   if (started || typeof window === "undefined") return;
   started = true;
-  state = { fx: read("wb:fx", true), music: read("wb:music", false) };
+  state = { fx: read("wb:fx", true), music: read("wb:music", false), bg: read("wb:music-bg", false) };
   emit();
   const wake = () => {
     if (!state.fx && !state.music) return;
@@ -233,5 +240,8 @@ export function startSoundEngine() {
     void startMusic();
   };
   for (const ev of ["pointerdown", "keydown", "touchend"]) document.addEventListener(ev, wake, { capture: true });
-  document.addEventListener("visibilitychange", () => (document.hidden ? stopMusic() : void startMusic()));
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) void startMusic();
+    else if (!state.bg) stopMusic();
+  });
 }
