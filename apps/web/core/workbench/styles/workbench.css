@@ -3404,3 +3404,9 @@ html.wb-tree-open body {
 .group\/project-card .animate-pulse {
   animation: none;
 }
+
+/* full-screen frames fit the visible area: on iPhone Safari 100vh runs under the toolbar,
+   hiding the bottom of the page (the sidebar footer with the sound switches) */
+.h-screen {
+  height: 100dvh;
+}
