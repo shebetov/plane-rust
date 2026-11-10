@@ -3476,3 +3476,10 @@ html.wb-tree-open body {
     font-size: 16px;
   }
 }
+
+/* phones: Home opens on the launcher art; the widgets start two thirds down and scroll up over it */
+@media (max-width: 767px) {
+  .wb-menu {
+    padding-top: max(18px, calc(66dvh - 110px));
+  }
+}
