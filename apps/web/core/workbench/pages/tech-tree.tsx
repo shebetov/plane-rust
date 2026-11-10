@@ -516,6 +516,7 @@ function SummaryPanel({
   links,
   onPick,
   onClose,
+  children,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -527,6 +528,7 @@ function SummaryPanel({
   links: React.ReactNode;
   onPick: (id: string) => void;
   onClose: () => void;
+  children?: React.ReactNode;
 }) {
   const crafting = items.filter((p) => p.group === "started");
   const ready = items.filter(isReady);
@@ -550,6 +552,7 @@ function SummaryPanel({
         {done}/{total} crafted · {crafting.length} crafting · {ready.length} ready
       </p>
       {links && <div className="wb-rp__btns">{links}</div>}
+      {children}
       {!!crafting.length && (
         <section className="wb-rp__sec">
           <h3>
@@ -750,26 +753,58 @@ export function TechTree() {
     );
   }, [lay, pid, narrow, rootMeasured]);
 
-  // the mouse wheel (or a trackpad pinch) zooms around the cursor; drag pans
+  // the mouse wheel (or a trackpad pinch) and a two-finger pinch zoom around the cursor or fingers;
+  // drag pans
   const mapReady = !!lay;
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
+    const zoomAt = (nz: number, x: number, y: number) => {
       const z = zoomRef.current;
-      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : 1);
-      const nz = Math.min(1.5, Math.max(0.2, z * Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015))));
+      nz = Math.min(1.5, Math.max(0.2, nz));
       if (nz === z) return;
       const r = el.getBoundingClientRect();
-      const cx = e.clientX - r.left;
-      const cy = e.clientY - r.top;
+      const cx = x - r.left;
+      const cy = y - r.top;
       zoomAnchor.current = { mx: (el.scrollLeft + cx - 24) / z, my: (el.scrollTop + cy - 24) / z, cx, cy };
       zoomRef.current = nz;
       setZoom(nz);
     };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+      zoomAt(zoomRef.current * Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX, e.clientY);
+    };
+    let pinch: { d: number; z: number } | null = null;
+    const spread = (ts: TouchList) => Math.hypot(ts[0].clientX - ts[1].clientX, ts[0].clientY - ts[1].clientY);
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) pinch = { d: spread(e.touches) || 1, z: zoomRef.current };
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!pinch || e.touches.length !== 2) return;
+      e.preventDefault();
+      const [a, b] = [e.touches[0], e.touches[1]];
+      zoomAt((pinch.z * spread(e.touches)) / pinch.d, (a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinch = null;
+    };
+    // Safari's own page zoom, which would scale the whole screen instead of the map
+    const noPageZoom = (e: Event) => e.preventDefault();
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd);
+    el.addEventListener("touchcancel", onTouchEnd);
+    el.addEventListener("gesturestart", noPageZoom);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+      el.removeEventListener("gesturestart", noPageZoom);
+    };
   }, [mapReady]);
   useLayoutEffect(() => {
     const el = scroller.current;
@@ -850,9 +885,13 @@ export function TechTree() {
     const el = scroller.current;
     const p = lay.items.get(id);
     if (!p || !el) return;
+    // on phones the research panel is a sheet over the map's lower part: centre in what is left above it
+    const sheet = el.parentElement?.querySelector<HTMLElement>(".wb-rp")?.getBoundingClientRect();
+    const top = el.getBoundingClientRect().top;
+    const seen = narrow && sheet ? Math.max(ITEM_SQ, Math.min(el.clientHeight, sheet.top - top)) : el.clientHeight;
     el.scrollTo({
       left: (p.x + CELL_W / 2) * zoom + 24 - el.clientWidth / 2,
-      top: (p.y + ITEM_SQ / 2) * zoom + 24 - el.clientHeight / 2,
+      top: (p.y + ITEM_SQ / 2) * zoom + 24 - seen / 2,
       behavior: "smooth",
     });
   };
@@ -935,10 +974,14 @@ export function TechTree() {
       const over = nodeAt(ev.clientX, ev.clientY);
       setLink({ from, ...toMap(ev.clientX, ev.clientY), over: over === from ? null : over });
     };
-    const up = (ev: PointerEvent) => {
+    const end = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", end);
       setLink(null);
+    };
+    const up = (ev: PointerEvent) => {
+      end();
       const to = nodeAt(ev.clientX, ev.clientY);
       if (!to || to === from || all.get(to)?.blockers.includes(from)) return;
       if (requires(from, to)) {
@@ -951,6 +994,8 @@ export function TechTree() {
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    // the browser took the touch over (a scroll or a system gesture): drop the link
+    window.addEventListener("pointercancel", end);
   };
 
   const selItem = sel?.kind === "item" ? all.get(sel.id) : undefined;
@@ -1099,13 +1144,21 @@ export function TechTree() {
 
                   {placed.map((p) => (
                     // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- hover only lights the path
-                    <div key={p.id} onMouseEnter={() => !link && setHover(p.id)} onMouseLeave={() => setHover(null)}>
+                    // mouse only: a tap on a touch screen fires a hover that never ends
+                    <div
+                      key={p.id}
+                      onPointerEnter={(e) => e.pointerType === "mouse" && !link && setHover(p.id)}
+                      onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
+                    >
                       <ItemTile
                         p={p}
                         art={art(p.col, 44)}
                         sel={sel?.kind === "item" && sel.id === p.id}
                         dim={!isLit(p.id)}
-                        onSelect={() => select({ kind: "item", id: p.id })}
+                        onSelect={() => {
+                          select({ kind: "item", id: p.id });
+                          if (narrow) setTimeout(() => scrollTo(p.id), 80);
+                        }}
                         onLinkStart={(e) => startLink(p.id, e)}
                         linkTarget={link?.over === p.id}
                       />
@@ -1186,7 +1239,10 @@ export function TechTree() {
             {!sel && !flash && (
               <div className="wb-rt__hint">
                 <Link2 className="size-3.5" />
-                Scroll to zoom · drag a tile's handle onto an Item it unlocks
+                <span className="wb-rt__hint-mouse">Scroll to zoom · drag a tile's handle onto an Item it unlocks</span>
+                <span className="wb-rt__hint-touch">
+                  Pinch to zoom · drag a picked tile's handle onto an Item it unlocks
+                </span>
               </div>
             )}
             {selItem && (
@@ -1241,7 +1297,10 @@ export function TechTree() {
                     List view
                   </Link>
                 }
-              />
+              >
+                {/* on phones the cupboard on the map is too small to use */}
+                {narrow && bpHome && <ToolCupboardPanel bp={bpHome} />}
+              </SummaryPanel>
             )}
           </div>
         </div>

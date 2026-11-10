@@ -731,15 +731,19 @@ html {
 }
 
 @media (max-width: 767px) {
+  /* at the bottom, over the craft queue pill, clear of the header and its menu button */
   .wb-notices {
     left: 12px;
     right: 12px;
-    bottom: auto;
-    top: 52px;
+    bottom: calc(52px + env(safe-area-inset-bottom));
     align-items: stretch;
   }
   .wb-notice {
     width: auto;
+  }
+  /* the two newest only: a taller stack would cover most of the screen */
+  .wb-notice:nth-last-child(n + 3) {
+    display: none;
   }
   .wb-queue {
     right: 10px;
@@ -2942,7 +2946,7 @@ video.wb-menu__scene {
     display: flex;
     align-items: center;
     gap: 6px;
-    height: 32px;
+    height: 36px;
     padding: 0 12px;
     background: rgba(22, 21, 18, 0.92);
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
@@ -3409,4 +3413,66 @@ html.wb-tree-open body {
    hiding the bottom of the page (the sidebar footer with the sound switches) */
 .h-screen {
   height: 100dvh;
+}
+
+/* the research tree pans with one finger; two fingers zoom the map (not the page) */
+.wb-rt__canvas {
+  touch-action: pan-x pan-y;
+}
+.wb-tl__port {
+  touch-action: none;
+}
+.wb-rt__hint-touch {
+  display: none;
+}
+@media (pointer: coarse) {
+  .wb-rt__hint-mouse {
+    display: none;
+  }
+  .wb-rt__hint-touch {
+    display: inline;
+  }
+  /* only the picked tile's handle grips, so a pan that starts near a tile still pans */
+  .wb-tl:not(.wb-tl--sel) .wb-tl__port {
+    pointer-events: none;
+  }
+  /* a fingertip-sized grip around the link handle */
+  .wb-tl__port::before {
+    content: "";
+    position: absolute;
+    inset: -12px;
+  }
+}
+
+/* phones: finger-sized controls, and inputs at 16px so Safari doesn't zoom in on focus */
+@media (max-width: 767px) {
+  .wb-side-sound .wb-ibtn {
+    width: 36px;
+    height: 36px;
+  }
+  .wb-chip {
+    height: 32px;
+  }
+  .wb-rt__tool {
+    height: 34px;
+  }
+  .wb-rp {
+    max-height: 52dvh;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .wb-rp__close {
+    padding: 10px;
+    margin: -10px -10px -10px auto;
+  }
+  .wb-rp__add {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+  .wb-rp__x {
+    padding: 10px;
+  }
+  .wb-rp__search input {
+    font-size: 16px;
+  }
 }

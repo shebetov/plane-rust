@@ -52,6 +52,13 @@ function pump() {
   if (queue.length) window.setTimeout(pump, 700);
 }
 
+/** A tap on a notice puts it away (and opens its link, if it has one). */
+function dismiss(id: string) {
+  shown = shown.filter((s) => s.id !== id);
+  emit();
+  pump();
+}
+
 export function pushNotice(n: Omit<TNotice, "id">) {
   queue.push({ ...n, id: `${Date.now()}-${Math.random()}` });
   pump();
@@ -73,7 +80,10 @@ export function NoticeStack({ frame }: { frame?: string }) {
         <Link
           key={n.id}
           to={n.href ?? "#"}
-          onClick={(e) => !n.href && e.preventDefault()}
+          onClick={(e) => {
+            if (!n.href) e.preventDefault();
+            dismiss(n.id);
+          }}
           className={cn("wb-notice", `wb-notice--${n.kind}`, frame && `wb-notice--${frame}`)}
           data-wb-silent
         >

@@ -212,8 +212,8 @@ export function Guide() {
                 "Follow the wires right. Each one leads to what it unlocks.",
                 "Bright frame: ready. Padlock: needs another Item first. Tick: crafted.",
                 "The breathing corner frame marks your next craft.",
-                "Drag the handle on a tile's right side onto the Item it unlocks.",
-                "Scroll to zoom. Drag the board to move around.",
+                "Drag the handle on a tile's right side onto the Item it unlocks (on a phone, tap the tile first).",
+                "Scroll or pinch to zoom. Drag the board to move around.",
                 "Crafted Items hide. Turn on SHOW CRAFTED to see them.",
               ]}
             />
@@ -225,9 +225,9 @@ export function Guide() {
                 "Sidebar: Home, Blueprints, Wipe, Shop, Guide. Then your Blueprints.",
                 "Top bar: wipe clock, cupboard alarm, scrap.",
                 "Craft queue, bottom right on Home: your Crafting Items. Tap one to open it.",
-                "Notices: ITEM CRAFTED, KIT COMPLETE, BLUEPRINT LEARNED, SCRAPPED.",
+                "Notices: ITEM CRAFTED, KIT COMPLETE, BLUEPRINT LEARNED, SCRAPPED. Tap one to put it away.",
                 "Back after a break? You see what got crafted while you were away.",
-                "Sound is on, music is off. Switch both in the top bar.",
+                "Sound is on, music is off. Switch both in the top bar (on a phone, at the foot of the sidebar, beside the wipe clock).",
                 "With music on, the headphones button keeps it playing in other tabs and apps (computer only).",
               ]}
             />
